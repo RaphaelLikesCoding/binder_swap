@@ -221,3 +221,24 @@ def test_fetch_exit_code_tolerates_small_error_rate(world, tmp_path, monkeypatch
     assert fetch.main(["--catalog", str(out / "catalog.sqlite"), "--out", str(tmp_path)]) == 0
     calls["counts"] = {"ok": 900, "missing": 0, "error": 100}
     assert fetch.main(["--catalog", str(out / "catalog.sqlite"), "--out", str(tmp_path)]) == 1
+
+
+@pytest.mark.parametrize("cores,pockets,expected", [
+    (2, 9, 2),      # the CI runner: nine Tesseracts on two cores timed out
+    (1, 9, 1),
+    (28, 9, 9),     # a desktop: bounded by the page, not the machine
+    (28, 1, 1),
+    (4, 16, 4),     # a 4x4 binder page on a small box
+])
+def test_ocr_worker_count_follows_the_machine_not_the_page(monkeypatch, cores, pockets, expected):
+    """Tesseract is CPU-bound once started, so one worker per pocket
+    oversubscribes a small host and every call blows its timeout."""
+    from binderswap.recognition import recognizer
+    monkeypatch.setattr(recognizer.os, "cpu_count", lambda: cores)
+    assert recognizer.ocr_workers(pockets) == expected
+
+
+def test_ocr_worker_count_survives_an_unknown_cpu_count(monkeypatch):
+    from binderswap.recognition import recognizer
+    monkeypatch.setattr(recognizer.os, "cpu_count", lambda: None)
+    assert recognizer.ocr_workers(9) >= 1

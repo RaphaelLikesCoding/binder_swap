@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import collections
 import concurrent.futures as cf
+import os
 import math
 import sqlite3
 from dataclasses import asdict, dataclass, field
@@ -144,6 +145,18 @@ class PageResult:
         return asdict(self)
 
 
+def ocr_workers(pockets: int) -> int:
+    """How many pockets to read at once.
+
+    Bounded by the machine, never by the page. Tesseract is CPU-bound once it
+    starts, so one worker per pocket oversubscribes a small host: nine of them
+    on a 2-vCPU CI runner each exceeded the 20s timeout, while the identical
+    code on a 28-core desktop ran 2.7x faster. Returning <= cpu_count keeps
+    both honest.
+    """
+    return max(1, min(pockets, os.cpu_count() or 2))
+
+
 class Recognizer:
     def __init__(self, index: ReferenceIndex, catalog: CatalogView, settings: Settings | None = None,
                  embedder: Embedder | None = None):
@@ -247,13 +260,16 @@ class Recognizer:
             else:
                 states[s.index] = "card"
             todo.append((s.index, crop_card(page, s)))
-        # Reading the number band shells out to Tesseract several times per card,
-        # and almost all of that is process spawn and pipe waiting rather than
-        # work -- measured at 10.0s of a 10.2s page. Those waits release the GIL,
-        # so running the pockets concurrently turns the page cost into roughly
-        # one card's. Results are keyed by slot index, so ordering is unchanged.
-        if len(todo) > 1 and self.settings.use_ocr:
-            with cf.ThreadPoolExecutor(max_workers=min(9, len(todo))) as pool:
+        # Reading the number band shells out to Tesseract several times per card
+        # -- 10.0s of a 10.2s page before this. Running the pockets concurrently
+        # overlaps the process spawns and uses the cores, but Tesseract itself is
+        # CPU-bound, so the worker count must follow the MACHINE, not the page.
+        # One pocket per pocket oversubscribes a small box: nine Tesseracts on
+        # the 2-vCPU CI runner each exceeded the 20s timeout, while the same code
+        # on a 28-core desktop was 2.7x faster. Bound by cpu_count.
+        workers = ocr_workers(len(todo))
+        if workers > 1 and self.settings.use_ocr:
+            with cf.ThreadPoolExecutor(max_workers=workers) as pool:
                 for i, ev in zip((i for i, _ in todo),
                                  pool.map(self._evidence, [c for _, c in todo])):
                     evidence[i] = ev
