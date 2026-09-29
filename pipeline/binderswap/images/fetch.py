@@ -26,7 +26,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-USER_AGENT = "BinderSwapCatalog/0.1 (+https://github.com/RaphaelLikesCoding/clip_studio)"
+USER_AGENT = "BinderSwapCatalog/0.1 (+https://github.com/RaphaelLikesCoding/binder_swap)"
 
 MANIFEST_SCHEMA = """
 CREATE TABLE IF NOT EXISTS images (

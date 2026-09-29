@@ -1,6 +1,6 @@
 # Binder Swap — Product & Technical Spec
 
-> Status: **Draft v0.3** (owner decisions from rounds 1–2 applied) · Working name: *Binder Swap* · Repo: `clip_studio`
+> Status: **Draft v0.3** (owner decisions from rounds 1–2 applied) · Working name: *Binder Swap* · Repo: `binder_swap`
 >
 > This is a living document. Items marked **[DECISION]** need an owner call; items marked **[VERIFY]** are assumptions that must be checked before we build on them.
 
