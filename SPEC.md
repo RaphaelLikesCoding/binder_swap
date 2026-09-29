@@ -1,6 +1,6 @@
 # Binder Swap — Product & Technical Spec
 
-> Status: **Draft v0.1** · Working name: *Binder Swap* · Repo: `clip_studio`
+> Status: **Draft v0.2** (owner decisions from round 1 applied) · Working name: *Binder Swap* · Repo: `clip_studio`
 >
 > This is a living document. Items marked **[DECISION]** need an owner call; items marked **[VERIFY]** are assumptions that must be checked before we build on them.
 
@@ -28,7 +28,7 @@ Collectors keep trading cards in physical binders. Finding a trade today means f
 | Persona | Needs |
 |---|---|
 | **Set completer** | Tracks progress toward full sets. Wants gaps found for them and wants to find trades for the missing cards. |
-| **Casual kid/teen collector** (with a parent) | Simple intake and safe, in-person trading. **Note:** this persona brings COPPA and safety requirements (see §11). |
+| **Kid collector** (with a parent) | **Supported in v1.** Simple intake and safe, in-person-only trading under a parent-managed account (see §11). |
 | **Card-show / league trader** | Fast matching in crowded, low-signal venues. Needs to trust the values. |
 
 ---
@@ -36,12 +36,12 @@ Collectors keep trading cards in physical binders. Finding a trade today means f
 ## 3. Scope
 
 ### Platforms
-- **v1:** iPhone (iOS 17+ **[VERIFY]** the minimum against the features we need). iPad works but is not optimized for.
+- **v1: iPhone only** (decided). iOS 17+ **[VERIFY]** the minimum against the features we need. iPad works but is not optimized for.
 - **Later:** Android. This affects the phone-to-phone exchange protocol today (see §7.3): **nothing in the exchange may depend on Apple-only transports.**
 
 ### Card games
-- **v1: Pokémon TCG only.** **[DECISION]** It has the best free catalog and price data, printed collector numbers (e.g. `045/198`), and the strongest set-completion culture.
-- **v2 candidates:** Magic: The Gathering (Scryfall data), Yu-Gi-Oh!, One Piece, Lorcana, sports cards (much harder, see §12).
+- **Pokémon TCG only** (decided), in **English and Japanese** (decided).
+- English and Japanese are **separate catalogs**: Japanese sets have different names, set codes, numbering and set boundaries from their English counterparts, and they are priced separately. A Japanese card never matches an English wish, unless a later "any language" wish option is added **[DECISION]** for later.
 
 ### Out of scope for v1
 - Payments, escrow, or cash-difference settlement inside the app
@@ -140,7 +140,7 @@ No recognizer is ever literally 100% sure. **Definition:** a card gets a ✅ onl
 - **Reverse holo vs normal vs holo.** The art is identical, and a flat photo shows the foil pattern only weakly. v1 should **ask** when variant is ambiguous and default to the most common variant rather than guess silently.
 - **Reprints and alternate arts** with the same name across sets: the collector number and set symbol decide.
 - **Secret rares** numbered above the printed set total (e.g. `205/198`). The sequence prior must allow for them.
-- **Japanese and other language cards.** **[DECISION]** English only for v1?
+- **Japanese cards.** The name OCR must handle Japanese script, and the language is detected per card (from script, set code and card frame). Mixed-language pages are allowed. Japanese collector numbers and set codes follow a different format, so the parser needs a separate path for them.
 - **Small pockets**, 4×3 or larger: lower resolution per card, so the camera may need to capture at maximum resolution.
 
 ### 5.6 Learning loop
@@ -206,18 +206,34 @@ for_them = my.tradeables    ∩ their.wants
 - Values depend on variant and condition. Show NM market by default, with a condition adjustment.
 - Prices are cached server-side and refreshed daily. Devices never call price vendors directly, so no API keys ship in the app.
 
-### 8.2 Data source options (Pokémon first)
+### 8.2 Card catalog: where the "clean database" comes from
 
-| Source | Cost | Notes |
-|---|---|---|
-| **Pokémon TCG API (pokemontcg.io)** | Free (API key) | Catalog + images + TCGplayer & Cardmarket price fields. **[VERIFY]** current ownership/terms and price freshness. Likely the best v1 source. |
-| **TCGplayer API** | — | **[VERIFY]** Historically closed to new developer applications. Don't plan around direct access. |
-| **Scryfall** (for MTG later) | Free | Excellent bulk data including TCGplayer-derived USD prices. Rate-limit and attribution rules apply. |
-| **JustTCG, PriceCharting, others** | Free tier / paid | **[VERIFY]** Evaluate for coverage, accuracy vs TCGplayer market, and commercial-use terms. |
+**Does The Pokémon Company provide one?** No, not in a usable form. pokemon.com has an official *card search website* for English cards, but there is no public API, no bulk download, and no license to reuse the data or images. We should not build on it, and scraping it would be a Terms of Service and IP risk. **[VERIFY]** whether TPC offers any developer or licensing program. None was found.
 
-**[DECISION]** Budget ceiling for price data per month.
+**Why not scrape TCGplayer, PriceDex or similar once?** Their terms prohibit scraping. "Once" still means copying their compiled database, and the result would still need updating for every new set. Free and licensed sources exist, so we don't need to take that risk.
 
-**Accuracy check:** before launch, compare the chosen source against TCGplayer market prices for a sample of ~200 cards across rarities. Publish the tolerance internally, e.g. median error < 10% **[DECISION]**.
+**Candidate sources (researched September 2026):**
+
+| Source | Cost | EN | JA | Images | Prices | License / status |
+|---|---|---|---|---|---|---|
+| **TCGdex** (`api.tcgdex.net`, `github.com/tcgdex/cards-database`) | Free, no key | ✅ | ✅ | ✅ | TCGplayer (USD) and Cardmarket (EUR) fields | Open source; database repo is **MIT** licensed. Community maintained. Supports 14 languages. **Recommended primary seed.** |
+| **Pokémon TCG API / pokemon-tcg-data** (pokemontcg.io) | Free | ✅ | ❌ | ✅ | TCGplayer & Cardmarket | **Legacy.** Scheduled to go offline **March 1, 2027**, and no longer updated routinely. Use only as a one-time cross-check snapshot. |
+| **Scrydex** (successor to pokemontcg.io) | Paid, from about $29/mo (credit based, no free tier) | ✅ | ✅ | ✅ (HQ) | Market prices, price history, graded prices | Commercial and actively maintained. **Recommended paid upgrade or fallback** for price accuracy and Japanese prices. |
+| **pokemon.com card search** | — | ✅ | ❌ | ✅ | ❌ | Official, but no API or reuse license. Useful only as a **human reference** to resolve disputes. |
+| **TCGplayer API** | — | | | | | Closed to new developers. Do not plan around it. |
+
+**Plan:**
+1. **Seed once from TCGdex** (EN + JA): every set, card, variant list and image. Store it in **our own catalog database** with **our own stable card IDs**, and keep the TCGdex, pokemontcg.io, Scrydex and TCGplayer product IDs as cross-reference columns.
+2. **Cross-validate English** against the pokemon-tcg-data snapshot before it shuts down. Card counts per set, numbers, names and rarities must agree, and any disagreement goes to a **review queue** that a human resolves against pokemon.com card search. This is how we reach "no questions" data: no single community source is perfect, but two independent sources that agree, plus human review of the disagreements, gets close.
+3. **New sets:** a scheduled job checks sources for new sets. New sets go through the same validation and review queue before publishing, and then the app downloads that set's catalog and recognition pack. Expect a few days' lag after release for community sources; Scrydex is usually faster.
+4. **Images:** we mirror images to our own storage/CDN, used for display and to build recognition embeddings. Card art is © The Pokémon Company, Nintendo, Creatures and GAME FREAK, regardless of which source serves it. **[VERIFY]** image terms with a lawyer before launch. Fan collection apps commonly display card images with a non-affiliation disclaimer, but that is a norm, not a license.
+
+### 8.3 Price sources
+- **v1: prices from TCGdex's TCGplayer and Cardmarket fields**, cached daily on our server.
+- **Japanese prices:** likely sparse in free sources. **[VERIFY]** TCGdex Japanese price coverage. If it's poor, Scrydex (paid) covers Japanese cards. Show "no price data" rather than guessing.
+- **Accuracy gate:** before launch, compare our values against TCGplayer's public market prices for ~200 English cards and ~100 Japanese cards across rarities. **[DECISION]** tolerance, for example median error < 10%. If the free source fails the gate, switch to Scrydex.
+
+**[DECISION]** Budget ceiling for data per month. $0 is feasible for v1. Scrydex starts at about $29/mo; higher tiers cost more.
 
 ---
 
@@ -240,7 +256,7 @@ for_them = my.tradeables    ∩ their.wants
 ```
 
 ### Stack decisions
-- **[DECISION] iOS client: native Swift/SwiftUI (recommended).** The hard parts (camera, Vision, Core ML, MultipeerConnectivity, Nearby Interaction) are all native Apple frameworks. A cross-platform framework would put every one of them behind a bridge and still need an Android rewrite of those modules. The cost: Android later means a second client, though the backend, protocol, catalog and models are shared. The alternative is Kotlin Multiplatform for shared business logic (matching, models) with native UIs.
+- **iOS client: native Swift/SwiftUI (decided).** The hard parts (camera, Vision, Core ML, MultipeerConnectivity, Nearby Interaction) are all native Apple frameworks. A cross-platform framework would put every one of them behind a bridge and still need an Android rewrite of those modules. The cost: Android later means a second client, though the backend, protocol, catalog and models are shared. The alternative is Kotlin Multiplatform for shared business logic (matching, models) with native UIs.
 - **[DECISION] Backend:** a managed option (Supabase or Firebase) for auth, database and storage, plus a small scheduled job for catalog and price ETL. It should be cheap and fast to ship. Avoid CloudKit-only sync, because it blocks Android.
 - **Offline-first:** the collection lives on the device. Recognition, matching and peer-to-peer swap all work with no signal. Sync happens when online.
 
@@ -262,7 +278,13 @@ for_them = my.tradeables    ∩ their.wants
 ## 11. Privacy, Safety & Compliance
 
 - **Minimum data shared in a swap:** a display name plus for-trade and want lists. No location, contacts or full collection.
-- **Kids:** many collectors are under 13. **[DECISION]** Options: (a) 13+ only via an age gate (simplest), or (b) a parent-managed account (COPPA work). In either case v1 includes no chat and no remote contact with strangers, since swaps are in person.
+- **Kids are supported** (decided). This makes COPPA (US) and similar laws a v1 requirement, not an add-on:
+  - **Age gate at signup** (neutral date-of-birth entry). Under-13 accounts require **verifiable parental consent** and are created and managed from a parent account.
+  - **Child accounts:** no public profile link or web preview, no free-text display name (pick from generated names such as "BlueCharizard42"), no chat, and no remote trades. Swaps happen only in person, by QR or nearby discovery.
+  - **Parent controls:** see the child's collection and trade history, and optionally require parent approval before a trade is recorded.
+  - **No third-party ads or tracking analytics** in the app at all. This keeps us eligible for the App Store Kids category rules **[VERIFY]** whether we list there or in Reference/Entertainment with a 4+ rating.
+  - **Data minimization:** no precise location, contacts or photos leaving the device for child accounts, including no opt-in model training (§5.6).
+  - **[VERIFY]** COPPA and GDPR-K compliance with counsel before launch.
 - **Photos** stay on the device unless the user opts in to contribute training data.
 - **IP / trademarks:** "Pokémon" and card images belong to Nintendo, Creatures and GAME FREAK (via The Pokémon Company). **[VERIFY]** App Store naming and screenshot rules, the image licensing terms of the data provider, and a "not affiliated" disclaimer. Keep "Binder Swap" game-neutral, which is also good for multi-game support.
 - **App Store guidelines:** no in-app real-money trading in v1 avoids most payment and marketplace review issues.
@@ -284,20 +306,20 @@ for_them = my.tradeables    ∩ their.wants
 
 ### Phase 0: Recognition spike (validate the core risk)
 - Collect **50+ real binder page photos**: sleeved, varied lighting, 9-pocket and 4-pocket.
-- Prototype detection → grid → OCR + embedding match against 3–5 Pokémon sets.
+- **Build the catalog seed** (§8.2): import TCGdex EN + JA, cross-check EN against pokemon-tcg-data, and produce a discrepancy report.
+- Prototype detection → grid → OCR + embedding match against 3–5 English sets and 2 Japanese sets.
 - **Exit criteria:** measure precision and coverage against the §10 targets and decide go/adjust.
 
-### Phase 1: MVP (iOS, Pokémon, English)
+### Phase 1: MVP (iOS, Pokémon, English + Japanese, kid accounts)
 - Binders (freeform + set mode), photo intake with ✅/❓ and candidate picker, manual search
 - Set tracker and automatic set-gap wish list
 - Values (single source, daily cache)
 - Swap via QR + nearby (Multipeer), match screen, value balance, record trade
-- Account + backup sync
+- Accounts (parent/child) + backup sync
 
 ### Phase 2
-- Permanent profile QR + web preview, trade history, proposal/counter flow polish
+- Permanent profile QR (adult accounts only) + web preview, trade history, proposal/counter flow polish
 - Nearby Interaction "bump" proximity, master-set variants, condition-adjusted values
-- Second game (MTG via Scryfall)
 
 ### Phase 3
 - Android client (shared backend and protocol)
@@ -305,18 +327,23 @@ for_them = my.tradeables    ∩ their.wants
 
 ---
 
-## 14. Open Questions for the Owner
+## 14. Decisions & Open Questions
 
-1. **Games:** Pokémon-only for v1? English-only?
-2. **Tradeable default:** only duplicates, only items explicitly flagged, or everything?
-3. **Age policy:** 13+ gate, or support kids with parent accounts?
-4. **Accounts:** required from the start, or usable anonymously with optional sign-in for backup?
-5. **Recording trades:** should a completed swap automatically move cards between both inventories?
-6. **Monetization:** free, freemium (e.g. unlimited binders or scans), subscription, or one-time purchase? This affects the price data budget.
-7. **Price data budget:** a monthly ceiling?
-8. **Stack:** OK with native Swift for iOS, with Android as a separate client later?
-9. **Test data:** can you supply real binder page photos for the Phase 0 spike?
-10. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use, and do we own a domain?
+### Decided (round 1)
+- **Pokémon only**, **English + Japanese**.
+- **Kids supported**, via parent-managed accounts (§11).
+- **iPhone first**, native Swift. Android later.
+- **The owner supplies real binder photos** for Phase 0.
+- **Catalog** seeded once from free sources, then updated per new set (§8.2).
+
+### Still open
+1. **Tradeable default:** only duplicates, only items explicitly flagged, or everything?
+2. **Accounts:** required from the start, or usable anonymously with optional sign-in for backup? Kid support pushes toward accounts.
+3. **Recording trades:** should a completed swap automatically move cards between both inventories?
+4. **Monetization:** free, freemium, subscription or one-time purchase? This affects the data budget. Note that monetizing child accounts has extra App Store restrictions.
+5. **Data budget:** $0 (free sources only), or a paid tier of Scrydex (from about $29/mo)?
+6. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use, and do we own a domain?
+7. **Cross-language wishes:** should a wish ever accept "any language"?
 
 ---
 
