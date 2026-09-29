@@ -7,7 +7,11 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-COMMON_LAYOUTS = [(3, 3), (2, 2), (3, 4), (4, 3), (4, 4), (2, 3), (1, 2)]  # rows, cols
+# Binder pocket layouts, rows x cols. Portrait and landscape pages both exist,
+# so these come in pairs; (1, 1) is deliberately absent because a single cell
+# has no interior gutter to score and outscores every real grid on brightness.
+COMMON_LAYOUTS = [(3, 3), (2, 2), (3, 4), (4, 3), (4, 4), (2, 3), (3, 2),
+                  (2, 4), (4, 2), (1, 2), (2, 1), (1, 3), (3, 1)]
 PAGE_WIDTH = 1500  # rectified page width in px
 
 

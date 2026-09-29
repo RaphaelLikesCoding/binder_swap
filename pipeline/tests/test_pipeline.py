@@ -62,6 +62,23 @@ def test_candidates_carry_the_set_and_number_the_picker_prints(world):
             assert c.set_id
 
 
+def test_common_layouts_cover_both_orientations_and_exclude_the_degenerate_one():
+    """Binders come in several pocket layouts, and pages get photographed both ways up.
+
+    A layout present in one orientation but not the other silently cannot be
+    detected on half the photos. (1, 1) is excluded on purpose: a single cell has
+    no interior gutter, so it is scored on brightness alone and beats every real
+    grid.
+    """
+    from binderswap.recognition.page import COMMON_LAYOUTS
+    layouts = set(COMMON_LAYOUTS)
+    assert (1, 1) not in layouts
+    for rows, cols in layouts:
+        assert (cols, rows) in layouts, f"{(rows, cols)} has no {(cols, rows)} counterpart"
+    for expected in [(3, 3), (2, 2), (3, 4), (4, 3), (2, 3), (3, 2), (2, 4), (4, 2)]:
+        assert expected in layouts, f"{expected} is a real binder and is missing"
+
+
 def test_number_label_matches_what_is_printed_on_the_card():
     from binderswap.recognition.recognizer import number_label
     assert number_label("136", 189) == "136/189"
