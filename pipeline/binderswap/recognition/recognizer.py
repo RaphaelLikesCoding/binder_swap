@@ -18,6 +18,7 @@ should be re-fitted once there are enough labelled pages.
 from __future__ import annotations
 
 import collections
+import concurrent.futures as cf
 import math
 import sqlite3
 from dataclasses import asdict, dataclass, field
@@ -237,6 +238,7 @@ class Recognizer:
 
         evidence: dict[int, dict] = {}
         states: dict[int, str] = {}
+        todo: list[tuple[int, np.ndarray]] = []
         for s in slots:
             if s.card_box is None:
                 states[s.index] = "empty" if pocket_is_empty(page, s) else "unknown"
@@ -244,7 +246,20 @@ class Recognizer:
                     continue
             else:
                 states[s.index] = "card"
-            evidence[s.index] = self._evidence(crop_card(page, s))
+            todo.append((s.index, crop_card(page, s)))
+        # Reading the number band shells out to Tesseract several times per card,
+        # and almost all of that is process spawn and pipe waiting rather than
+        # work -- measured at 10.0s of a 10.2s page. Those waits release the GIL,
+        # so running the pockets concurrently turns the page cost into roughly
+        # one card's. Results are keyed by slot index, so ordering is unchanged.
+        if len(todo) > 1 and self.settings.use_ocr:
+            with cf.ThreadPoolExecutor(max_workers=min(9, len(todo))) as pool:
+                for i, ev in zip((i for i, _ in todo),
+                                 pool.map(self._evidence, [c for _, c in todo])):
+                    evidence[i] = ev
+        else:
+            for i, crop in todo:
+                evidence[i] = self._evidence(crop)
 
         # Pass 1: no page priors. Verify top candidates geometrically.
         ranked = {i: self._score(ev, None, None, None) for i, ev in evidence.items()}
