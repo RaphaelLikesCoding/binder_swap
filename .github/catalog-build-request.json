@@ -1,0 +1,6 @@
+{
+  "images": true,
+  "langs": "en,ja",
+  "requested": "2026-09-29",
+  "reason": "Blocker #1: download real card images and build the visual index"
+}

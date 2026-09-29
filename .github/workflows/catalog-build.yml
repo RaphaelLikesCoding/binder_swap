@@ -2,8 +2,12 @@ name: catalog-build
 
 # Rebuilds the card catalog from TCGdex, cross-checks English against
 # pokemon-tcg-data, and (optionally) downloads card images and builds the
-# visual index. Run manually after a new set releases, or weekly.
+# visual index. Run manually after a new set releases, or weekly, or by
+# pushing a change to .github/catalog-build-request.json (lets automation that
+# can push but can't dispatch workflows request a build).
 on:
+  push:
+    paths: [".github/catalog-build-request.json"]
   workflow_dispatch:
     inputs:
       images:
@@ -30,16 +34,29 @@ jobs:
           python-version: "3.11"
       - uses: oven-sh/setup-bun@v2
       - run: pip install -e .
+      - name: Resolve options
+        id: opts
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            images=$(jq -r '.images // false' ../.github/catalog-build-request.json)
+            langs=$(jq -r '.langs // "en,ja"' ../.github/catalog-build-request.json)
+          else
+            images="${{ inputs.images || false }}"
+            langs="${{ inputs.langs || 'en,ja' }}"
+          fi
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+          echo "langs=$langs" >> "$GITHUB_OUTPUT"
+          echo "images=$images langs=$langs"
       - name: Build catalog
-        run: python -m binderswap.catalog.build --langs "${{ inputs.langs || 'en,ja' }}"
+        run: python -m binderswap.catalog.build --langs "${{ steps.opts.outputs.langs }}"
       - name: Cross-check English
         run: python -m binderswap.catalog.crosscheck
       - name: Download images (high resolution webp, for the index)
-        if: ${{ inputs.images }}
-        run: python -m binderswap.images.fetch --langs "${{ inputs.langs || 'en,ja' }}" --ext webp --rate 10 --retry-errors
+        if: ${{ steps.opts.outputs.images == 'true' }}
+        run: python -m binderswap.images.fetch --langs "${{ steps.opts.outputs.langs }}" --ext webp --rate 10 --retry-errors
       - name: Build visual index
-        if: ${{ inputs.images }}
-        run: python -m binderswap.images.index --langs "${{ inputs.langs || 'en,ja' }}"
+        if: ${{ steps.opts.outputs.images == 'true' }}
+        run: python -m binderswap.images.index --langs "${{ steps.opts.outputs.langs }}"
       - uses: actions/upload-artifact@v4
         with:
           name: catalog
@@ -49,7 +66,7 @@ jobs:
             pipeline/build/catalog/CROSSCHECK.md
             pipeline/build/catalog/packs/
       - name: Image summary
-        if: ${{ always() && inputs.images }}
+        if: ${{ always() && steps.opts.outputs.images == 'true' }}
         run: |
           python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
           import sqlite3
@@ -61,7 +78,7 @@ jobs:
           PY
           du -sh build/images
       - uses: actions/upload-artifact@v4
-        if: ${{ inputs.images }}
+        if: ${{ steps.opts.outputs.images == 'true' }}
         with:
           name: visual-index
           retention-days: 30

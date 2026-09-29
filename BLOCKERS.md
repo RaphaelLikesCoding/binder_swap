@@ -10,7 +10,7 @@ Last updated: 2026-09-29
 
 | # | Blocker | Holds up | Owner | Status | Next action |
 |---|---|---|---|---|---|
-| 1 | **Real card images not downloaded.** `assets.tcgdex.net` is blocked in the Claude Code cloud environment. | Visual index → any real accuracy test | Claude | 🟡 | `catalog-build` workflow run on GitHub Actions with images on (GitHub's machines aren't blocked). Optional: also allow `assets.tcgdex.net` + `api.tcgdex.net` in the environment's network settings, so work can happen in the session too. |
+| 1 | **Real card images not downloaded.** `assets.tcgdex.net` is blocked in the Claude Code cloud environment. | Visual index → any real accuracy test | Claude | 🟡 | `catalog-build` running on GitHub Actions with images on (GitHub's machines aren't blocked). Started by pushing `.github/catalog-build-request.json`, because the Claude GitHub App can't dispatch workflows (403). Optional: also allow `assets.tcgdex.net` + `api.tcgdex.net` in the environment's network settings, so work can happen in the session too. |
 | 2 | **Real binder photos not in the repo.** | Real accuracy numbers; the ✅ auto-confirm threshold | Owner | 🔴 | Upload ~30–50 pages (Set + Trade, EN + JA, 9- and 4-pocket, some glare) in chat or to `photos/`. Claude drafts `labels.json` from the catalog; owner confirms. |
 | 3 | **No macOS / Xcode build machine.** The session is Linux: Swift can be written but not compiled or run. | The iOS app itself; building the app's Vision-based visual index | Owner | 🔴 | A Mac with Xcode, or GitHub macOS runners (more expensive minutes on private repos). |
 | 3b | **No Apple Developer account.** | Running on a real iPhone, TestFlight, App Store | Owner | 🔴 | Enroll ($99/yr). |
@@ -34,4 +34,5 @@ Last updated: 2026-09-29
 
 ## Log
 
+- **2026-09-29**: Direct workflow dispatch refused (403: the Claude GitHub App lacks Actions write permission). Added a push trigger on `.github/catalog-build-request.json`; build requested by pushing that file.
 - **2026-09-29**: Blotter created. #1 moved to 🟡: image download + index build handed to GitHub Actions (`catalog-build`, images on, high-resolution webp to fit the runner's disk).
