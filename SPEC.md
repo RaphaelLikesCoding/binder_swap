@@ -224,9 +224,11 @@ single number a paywall screen can state in one line. Binders are unlimited
 because limiting them prices the wrong thing — a collector's binder count
 reflects how they organise, not how much they own.
 
-**[DECISION] 200 counts distinct cards, not copies.** A trade binder is mostly
-duplicates; four copies of one card is ordinary. Counting copies would make the
-limit bite hardest on the exact use case the product is for.
+**200 counts physical cards, copies included (decided).** Four copies of one
+card is four. This is the stricter reading — a trade binder is mostly
+duplicates, so the limit bites soonest on exactly the collector the product is
+for. That is the intent: a trade binder filling up is the moment trading
+becomes worth paying for.
 
 **Why values are absent rather than stale.** A week-old price is worse than no
 price in a trading app: someone trades on it, discovers it was stale, and
@@ -324,10 +326,11 @@ This is not only a cost decision:
   on a new device. It is their storage, not ours: nothing to pay for, nothing
   to breach, nothing to subpoena. It is also per-platform, so it does not carry
   the Android problem that CloudKit *sync* would (§9).
-- **[OPTION, not taken]** Manual export free / automatic backup paid. Manual
-  export costs nothing to offer and defuses "the app lost my collection", which
-  is the review that damages a collection app most. Currently backup is Premium
-  only; revisit if support volume argues otherwise.
+- **No export on the free tier (decided).** Backup and export are both Premium.
+  The known cost of this is the review that says "the app lost my collection"
+  when a free user replaces a phone; it is bounded because the free tier caps
+  at 200 cards, roughly half an hour of work rather than ten hours. Watch
+  support volume and 1-star reviews for this specific complaint after launch.
 - Backup carries collection data only — never photographs of pages.
 
 **Accounts**
@@ -609,15 +612,17 @@ for_them = my.tradeables    ∩ their.wants
    local use at all, and children need none either — a child's device inherits
    Premium through Family Sharing.
 3. ~~**Kids Category**~~ — **settled** (§6.4, §11): do not list there in v1.
-4. **[DECISION] Does "200 cards" count distinct cards or physical copies?**
-   Recommendation: distinct. A trade binder is mostly duplicates, so counting
-   copies makes the limit bite hardest on the core use case (§6.2).
-5. **[DECISION] Manual export on the free tier?** Backup is Premium as decided.
-   Manual export costs nothing to offer and defuses "the app lost my
-   collection", the review that damages a collection app most (§6.5).
-6. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use,
+4. ~~**Distinct cards or copies**~~ — **settled** (§6.2): copies count.
+5. ~~**Manual export on free**~~ — **settled** (§6.5): no, Premium only.
+6. **[DECISION] Is scanning free?** Recommendation: **yes, scan free, specifics
+   paid** (§6.2). Gating the scan means asking someone to pay before they have
+   seen it read a single one of their own cards, and it leaves the free tier as
+   a manual data-entry app nobody will use — so no inventory is ever built and
+   no conversion prompt ever fires. The gate belongs on the set-completion list
+   instead: free sees *"12 cards missing from this set"*, Premium sees which.
+7. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use,
    and do we own a domain?
-7. **Cross-language wishes:** should a wish ever accept "any language"?
+8. **Cross-language wishes:** should a wish ever accept "any language"?
 
 ---
 
