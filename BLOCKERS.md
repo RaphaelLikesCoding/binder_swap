@@ -14,12 +14,16 @@ Last updated: 2026-09-29
 | 3 | **Xcode not installed.** A Mac is now in play (Apple silicon, macOS 15, Swift 6.1.2), but only the Command Line Tools: no iOS SDK, no simulators, no `xcodebuild`. Swift compiles for macOS only. | The iOS app itself; building the app's Vision-based visual index | Owner | 🟡 | Install Xcode from the App Store (free, ~10 GB), then `sudo xcode-select -s /Applications/Xcode.app`. |
 | 3b | **No Apple Developer account.** | Running on a real iPhone, TestFlight, App Store | Owner | 🔴 | Enroll ($99/yr). |
 | 5 | **Japanese catalog gaps**: 127 sets only; some incomplete (e.g. `ja/SV4a` missing 40 of 190); ~3,600 cards without rarity; **5,931 of 13,448 JA cards (44%) have no image on TCGdex** (EN: 1,567 of 21,290, 7%). Cards without an image can only be matched by their printed number. Whole vintage JA sets have no images at all (e.g. `ja/neo1`, `ja/neo4`, `ja/PMCG1`, `ja/PMCG5`, `ja/PMCG6`, `ja/PCG4`, `ja/E2`, `ja/E4`), and so does a new one, `ja/M1L`. | A trustworthy JA catalog | Claude + owner | 🔴 | Decide: contribute fixes upstream to TCGdex, fill by hand, or Scrydex (paid) later. See `pipeline/reports/catalog-build.md`. |
-| 6 | **Open product decisions**: plan numbers (binder/scan limits, prices); whether free adult users need an account; domain and branding; whether a wish can accept any language. | Paywall, onboarding | Owner | 🔴 | Decide; Claude updates `SPEC.md` §6.1 / §14. |
+| 6 | **Open product decisions.** Narrowed 2026-09-29: currency is settled by coverage (EUR, §8.3), and concrete plan numbers, entitlements, App Store gates, backend security and the measurement-forced UX calls are now drafted in SPEC §6.2-6.6. What is left is owner sign-off on: the plan prices and limits; whether to offer social login at all; **whether to list in the App Store Kids Category** (recommendation: no for v1); domain and branding; whether a wish can accept any language. | Paywall, onboarding, submission | Owner | 🟡 | Review SPEC §6.2-6.6 and say yes/no per item. |
 
 ## Before launch (not blocking development)
 
 | Item | Owner | Status |
 |---|---|---|
+| **In-app account deletion** — App Store Guideline 5.1.1(v); a guaranteed rejection without it | Claude | 🔴 |
+| **Report / block / contact** — Guideline 1.2, triggered by profiles and trade proposals | Claude | 🔴 |
+| **Restore Purchases** control — Guideline 3.1.1 | Claude | 🔴 |
+| Privacy nutrition labels, filled from a real data inventory | Owner + Claude | 🔴 |
 | Price accuracy gate (SPEC 8.3): median error < 10% vs TCGplayer public prices, ~200 EN + ~100 JA. Coverage is measured; **accuracy is not**, and JA cannot be checked against TCGplayer at all since it lists no Japanese cards | Claude | 🔴 |
 | Legal review: card-image use and the "not affiliated" disclaimer | Owner (counsel) | 🔴 |
 | Legal review: COPPA / GDPR-K setup for kid accounts | Owner (counsel) | 🔴 |

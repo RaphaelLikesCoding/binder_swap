@@ -195,6 +195,186 @@ The numbers below are **proposals** **[DECISION]**. The structure is decided.
 - **Kids:** children never see a purchase screen. Upgrades happen from the parent account (Family Sharing where possible). **[VERIFY]** App Store kids-category rules on in-app purchases.
 - **Downgrade behavior:** a user over the free binder limit keeps read-only access to all binders and can swap from all of them, but can't add new pages until they're under the limit. Data is never deleted because of a plan change.
 
+### 6.2 Plan numbers (proposal, for the [DECISION] in §6.1)
+
+Concrete numbers so the paywall can be built and tested. Each is tied to a
+reason, so moving one is a judgement about that reason rather than a guess.
+
+| | **Free** | **Premium** $3.99/mo or $29.99/yr | **Lifetime** $79.99 |
+|---|---|---|---|
+| Binders | **2** | **Unlimited** | Unlimited |
+| Pages per binder | **30** (≈270 cards at 9-pocket) | Unlimited | Unlimited |
+| Photo page scans | **30 / month** | Unlimited | Unlimited |
+| Wish list items | **100** | Unlimited | Unlimited |
+| Trade history | Last **3** | Full + CSV export | Full + CSV export |
+| Cloud backup & sync | ❌ | ✅ | ✅ |
+| Price refresh | Weekly | Daily | Daily |
+| Child accounts | 1 | 4 | 4 |
+
+**Why these numbers.**
+- **30 scans/month** is the load-bearing one. It has to be generous enough that
+  a new user digitises a real binder and sees the product work, and small
+  enough that a heavy cataloguer converts. A 9-pocket binder page is one scan,
+  so 30 scans is a full 30-page binder — one complete binder per month free.
+- **2 binders** matches the natural split a collector already has: one Set
+  binder, one Trade binder. The third binder is the moment the habit has
+  formed, which is the right place for the ask.
+- **Lifetime at ~2x the annual** is the standard ratio for a hobby app and puts
+  it in impulse range at a card-show table. It must stay worth selling: if
+  server costs per user ever exceed roughly $1.50/yr, lifetime becomes a
+  liability and should be retired for new buyers rather than repriced.
+- **Trade history last 3** keeps the free tier honest — recording a trade is
+  free for everyone (§6.1) because a swap breaks if inventories diverge, but
+  the archive is the paid artefact.
+
+**Free tier without an account (answers open question 2, §14).** Adults get the
+whole local product with no sign-up: binders, scans, wish list, in-person
+swaps. An account is required only for cloud sync, remote proposals, a public
+profile, or any child account. This is worth the extra work — sign-up before
+first value is the largest drop-off in a hobby app, and it also keeps a large
+share of users entirely out of scope for data-protection obligations, because
+we never hold their data.
+
+**Counting rule.** A scan is counted when a page is *committed to a binder*,
+not when the shutter fires. Retries after a bad photo must not burn quota, or
+the limit punishes exactly the users whose photos we handle worst.
+
+**Grace, not a wall.** At the limit, the current page still completes and saves.
+The paywall appears after it, never mid-task.
+
+---
+
+## 6.3 Entitlements and receipts
+
+- **StoreKit 2**, with `Transaction.currentEntitlements` as the source of truth
+  on device. No receipt parsing.
+- **Server-side validation** for anything the server acts on (cloud sync,
+  remote proposals): the app sends the signed transaction JWS, the server
+  verifies it against Apple's public keys and stores the resulting entitlement
+  with its expiry. Never trust a client-asserted plan for a server-side limit.
+- **App Store Server Notifications V2** for renewals, cancellations, refunds,
+  billing retry and grace period. A refund must revoke the entitlement, and a
+  revoked Lifetime must degrade to Free without deleting data (§6.1).
+- **Restore Purchases** must exist as a visible control. Its absence is a
+  common rejection under Guideline 3.1.1, and it is the only recovery path for
+  a user who reinstalls or changes device.
+- **Offline entitlement** is cached with a grace window so the app keeps
+  working on a card-show floor with no signal. Expiry is enforced on next
+  successful validation, never by an offline clock the user can change.
+
+---
+
+## 6.4 App Store release gates
+
+These are rejection triggers, not polish. Each needs to exist before the first
+submission.
+
+| Gate | Requirement | Where it lands |
+|---|---|---|
+| **In-app account deletion** | Any app that creates an account must let the user delete it **in the app**, not only by email or web form. Required since June 2022 (Guideline 5.1.1(v)). | Settings → Account → Delete account. Deletes server-side data, not just the session. Child accounts deletable by the parent. |
+| **Report and block** | An app where users can see other users' content or contact each other needs a way to report content, block a user, and reach us — Guideline 1.2. Profiles, proposals and public binder previews all qualify. | Report on profile and on each proposal; block list; 24h triage commitment. |
+| **Restore purchases** | Guideline 3.1.1. | §6.3 |
+| **Privacy nutrition labels** | Declared at submission and must match reality, including anything an SDK collects on our behalf. | Filled from a data inventory, not from memory. |
+| **Sign-in options** | If we offer a third-party login (Google, Facebook), Apple requires an equivalent privacy-preserving option alongside it — in practice Sign in with Apple. Offering only email avoids the requirement. **[DECISION]** whether social login is worth it at all. | §6.5 |
+| **Kids Category** | **[DECISION]** whether to *list in* the Kids Category. Supporting children (§11) does not require it. Listing brings hard constraints: no third-party analytics or advertising, and IAP behind a parental gate. | See below. |
+| **Account-based app, no login wall** | An app must not require an account for features that do not need one (Guideline 5.1.1(i)). Our no-account free tier satisfies this by design. | §6.2 |
+
+**Recommendation on the Kids Category: do not list there in v1.** Supporting
+kid collectors through parent-managed accounts (§11) is the actual product
+goal, and that works in the normal category with a 9+ or 12+ rating. Listing in
+the Kids Category bans third-party analytics outright — which would remove our
+ability to diagnose recognition failures in the field, the one thing the
+product most needs early. Revisit once accuracy is proven.
+
+---
+
+## 6.5 Accounts, authentication and backend security
+
+**[DECISION] resolved in §9 as managed (Supabase or Firebase).** The items below
+apply to either.
+
+**Authentication**
+- **Email one-time code or magic link** as the default. No passwords means no
+  password reuse, no reset flow, and nothing to breach.
+- **Sign in with Apple** if we add any social login (§6.4), and worth offering
+  regardless on iOS — it is one tap and yields a private relay address.
+- **No account at all** for the local-only free tier (§6.2).
+- **Child accounts have no independent credential.** They are created by, and
+  reachable only through, the parent account (§11).
+
+**Authorisation — the part that is easy to get wrong**
+- **Row-level security on every table**, written so the default is deny. A
+  managed backend exposes the database to the client directly, so a missing
+  policy is not a bug in our code, it is a public table.
+- **Server-side enforcement of every plan limit.** Binder count, scan quota and
+  history depth are checked where the data is written. A client-side limit is a
+  display convenience, and treating it as enforcement is how a freemium app
+  ends up free.
+- **A user may read another user's binder only when that binder is published**,
+  and a published binder exposes card ids and counts — never location, contact
+  details, or a child's identifiers.
+
+**Abuse and cost control**
+- **Rate limits** per account and per IP on: scan upload, proposal creation,
+  profile lookup, and QR resolution. Scan upload is the expensive one and the
+  obvious way to run up a bill.
+- **A public profile QR is a permanent identifier.** It must be revocable and
+  regenerable, and it must never exist for a child account (§11).
+- **Trade proposals are rate-limited and blockable**, because an unsolicited
+  proposal is a message channel whether or not it carries text.
+
+**Data**
+- **TLS everywhere; device data encrypted at rest** via file protection.
+- **Photos are processed and discarded.** The page image is not retained after
+  recognition unless the user explicitly opts in to contributing it (§5.6), and
+  never for a child account.
+- **Export and delete** are the same mechanism the deletion gate needs (§6.4):
+  full export as CSV/JSON, hard delete server-side.
+- **Retention:** trade history for as long as the account lives; recognition
+  telemetry aggregated, with no image retained.
+
+---
+
+## 6.6 Experience decisions the measurements force
+
+These are not preferences. Each follows from something measured (see
+`BLOCKERS.md` for the numbers).
+
+**Four candidates, always, with what distinguishes them.** Roughly 4% of
+English and 12% of Japanese cards have a near-identical twin in the index, and
+for reprints the artwork is *byte-identical* — the entire difference is the
+printed number and set. So a candidate row without its set name and number is
+undecidable, no matter how good the image. The picker shows set and number
+beside every candidate for that reason, not for completeness.
+
+**Confidence must be honest, and honesty costs coverage.** The auto-confirm bar
+is precision ≥99.5% (§5.4). Cards with an identical twin cannot clear it on
+image evidence and must go to the picker even when the top match is right.
+Expect the ❓ rate to be structurally higher for Japanese.
+
+**One swipe is success, not failure.** The product metric is *cards confirmed
+per minute*, not top-1 accuracy. A card that lands in the top four and takes
+one tap has cost the user almost nothing. This should shape the review UI:
+review cards should be a queue that advances automatically, never a modal per
+card.
+
+**Puzzle cards span pockets.** Cards designed to join into one image across two
+or four pockets have continuous art and no internal edge. The recogniser must
+crop by pocket grid rather than by detected card outline, and the *only*
+per-card identity is the number printed at the edge. The UI should also be able
+to show such a set as the single picture it is.
+
+**Number reading is the weak link and should be visible as one.** Tesseract
+reads a card's printed number correctly 0.767 of the time on a clean scan and
+0.530 under mild degradation. Since the number is what separates reprints,
+low-confidence reads should prompt "tap the number to confirm" rather than
+silently guessing — and a purpose-built reader is the highest-value model
+investment.
+
+**Batch beats perfection.** Users photograph a whole binder in one sitting. The
+intake flow should accept many pages back-to-back and present one review queue
+at the end, rather than interrupting after each page.
+
 ---
 
 ## 7. Feature: Meet & Match (the swap)
