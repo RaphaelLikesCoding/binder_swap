@@ -186,6 +186,9 @@ def build_catalog(records: Iterable[dict]) -> Catalog:
             continue
         prefix, number, suffix = parse_number(local_id)
         name = localized(raw_card.get("name"), lang)
+        # LV.X cards print "LV.X" as part of the name; TCGdex encodes it as a stage.
+        if name and raw_card.get("stage") == "LEVEL-UP" and "LV.X" not in name:
+            name = f"{name} LV.X"
         rarity = raw_card.get("rarity")
         variants = normalize_variants(raw_card.get("variants"), lang)
         cat.cards[cid] = {

@@ -85,3 +85,10 @@ def test_db_and_packs_roundtrip(tmp_path):
     # Packs are deterministic, so unchanged sets keep their hash.
     again = write_packs(cat, tmp_path / "packs2", meta)
     assert again["sets"][0]["sha256"] == index["sets"][0]["sha256"]
+
+
+def test_level_up_cards_get_printed_lv_x_name():
+    r = rec(local_id="1", total=1)
+    r["card"]["stage"] = "LEVEL-UP"
+    cat = build_catalog([r])
+    assert cat.cards["en/sv03/1"]["name"] == "Card 1 LV.X"
