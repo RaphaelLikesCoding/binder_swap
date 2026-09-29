@@ -1,0 +1,26 @@
+name: core-tests
+
+# The Swift rules and the Python reference run the SAME vectors, so a change to
+# spec/vectors must be seen by both. The repo is public, so macOS minutes are
+# free; macOS is also the real target, and Swift is preinstalled there.
+
+on:
+  push:
+    paths: ["app/**", "spec/vectors/**", ".github/workflows/core-tests.yml"]
+  pull_request:
+    paths: ["app/**", "spec/vectors/**", ".github/workflows/core-tests.yml"]
+
+jobs:
+  swift:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: app/BinderSwapCore
+    steps:
+      - uses: actions/checkout@v5
+      - name: Swift version
+        run: swift --version
+      - name: Build
+        run: swift build
+      - name: Test against the shared vectors
+        run: swift test
