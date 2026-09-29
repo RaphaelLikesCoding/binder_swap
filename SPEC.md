@@ -1,6 +1,6 @@
 # Binder Swap — Product & Technical Spec
 
-> Status: **Draft v0.2** (owner decisions from round 1 applied) · Working name: *Binder Swap* · Repo: `clip_studio`
+> Status: **Draft v0.3** (owner decisions from rounds 1–2 applied) · Working name: *Binder Swap* · Repo: `clip_studio`
 >
 > This is a living document. Items marked **[DECISION]** need an owner call; items marked **[VERIFY]** are assumptions that must be checked before we build on them.
 
@@ -62,8 +62,8 @@ CatalogSet
 
 Binder
   id, name, layout {rows, cols}          // e.g. 3x3 (9-pocket), 2x2, 3x4
-  mode: freeform | set
-  set_id?                                 // set mode only
+  type: set | trade | collect             // owner-switchable at any time (§4.1)
+  set_id?                                 // set type only
   slot_order: row-major | column-major    // how numbering flows across a page
   start_number?                           // set mode: number in page 1, slot 1
   pages[]
@@ -78,7 +78,8 @@ Slot
 CollectionItem
   card_id, variant (normal | holo | reverse_holo | 1st_ed | …),
   condition (NM | LP | MP | HP | DMG, default NM),
-  quantity, for_trade_qty, location (binder/page/slot)?,
+  quantity, location (binder/page/slot)?,
+  keep: bool                              // opt-out: never offered even in a trade binder
   id_source: auto_confident | user_confirmed | manual
 
 WishlistItem
@@ -88,10 +89,27 @@ WishlistItem
 TradeSession
   peer_display_name, started_at, their_haves[], their_wants[],
   matches, proposed_trade?, status
+
+TradeRecord                               // written when both sides accept
+  id, completed_at, peer_display_name,
+  gave[] {card_id, variant, condition, qty, est_value},
+  got[]  {card_id, variant, condition, qty, est_value}
 ```
 
+### 4.1 Binder types (decided)
+A user can have many binders (the limit depends on plan, §6.1). Each binder has one **type**, and the user can flip it with a switch at any time:
+
+| Type | Cards in it are… | Empty slots are… | Typical use |
+|---|---|---|---|
+| **Set** | **Not tradeable.** They're completing a set. | **Needed:** each blank slot is a specific missing card and goes on the wish list automatically (§5.3). | Completing Obsidian Flames in number order |
+| **Trade** | **Tradeable by default.** The user can mark individual cards **Keep** to exclude them. | Meaningless (no wish list effect). | The binder you bring to a card show |
+| **Collect** | **Not tradeable.** Personal collection. | Meaningless. | Favorites, mixed collections |
+
 ### Key rules
-- **Haves are not the same as tradeables.** A card in someone's collection is **not** offered for trade by default. Only `for_trade_qty` (defaulting to *duplicates beyond 1*) is shared. **[DECISION]** confirm this default. Without it, users would be pestered to trade the cards they collect.
+- **Tradeable is decided by binder, not by duplicate count.** A card is offered in a swap **only if** it sits in a **Trade** binder and isn't marked **Keep**. Cards in Set and Collect binders are never offered, and neither are cards with no binder (manual adds). Duplicates are not special.
+- **Flipping a binder's type is instant and reversible.** Set → Trade removes that binder's auto-generated wishes and makes its cards tradeable. Trade → Set regenerates the gap wishes. Manual wishes are never touched.
+- **Needs:** set-gap wishes are always priority **Need**. Manual wishes default to **Want**, and the user can promote them.
+- **A needed card is never offered.** If a card is both in a Trade binder and on the same user's wish list (e.g. needed for a set binder), it is not offered. This guards against trading away a card you're about to need.
 - **Wish list items are satisfied automatically.** When a wished card enters the collection, the wish is marked fulfilled.
 - **A set goal** ("complete Obsidian Flames") creates wish list items for every missing number, and optionally for master-set variants.
 
@@ -130,7 +148,7 @@ The **visual index** covers all sets in scope. It ships as a downloadable pack p
 - **Sequence prior (set mode):** a set-mode binder is treated as a **template**: `slot → expected card number`. One confidently identified card anchors every slot on the page, using `start_number`, `slot_order` and the page index.
   - An empty slot resolves to a specific missing card number, which is **added to the wish list**.
   - A filled slot whose expected number disagrees with its recognized number is flagged ("out of order?"), not silently overwritten.
-- **Freeform mode:** only the same-set prior applies. Empty slots mean nothing.
+- **Trade and Collect binders:** only the same-set prior applies. Empty slots mean nothing.
 
 ### 5.4 What "100% confident" means
 No recognizer is ever literally 100% sure. **Definition:** a card gets a ✅ only when its calibrated confidence exceeds a threshold that we tune on a labeled test set, so that **fewer than 1 in 200 auto-confirmed cards are wrong** **[DECISION]** on the target. The threshold should also be tuned per variant, because variants are the hard part (§5.5).
@@ -150,12 +168,32 @@ Every user confirmation or correction is a labeled example. Store these locally.
 
 ## 6. Feature: Collection, Binders & Wish List
 
-- **Binders:** create, rename, reorder, and set the layout and mode. Page view mirrors the physical binder.
+- **Binders:** create, rename, reorder, and set layout and **type** (Set / Trade / Collect, §4.1). Page view mirrors the physical binder.
 - **Set tracker:** progress per set (e.g. `142 / 198`, with a master-set count optional), plus a list of missing cards.
 - **Manual add:** search by name, number, or set, for single cards or when there's no binder.
 - **Wish list:** manual items, set-gap items and set-goal items, each marked **Need** or **Want**. Can be filtered and sorted by value.
-- **For-trade flags:** per item, with the default rule from §4.
-- **Backup & sync:** so an inventory is never lost with a phone. See §9 **[DECISION]**.
+- **Keep flags:** per card in Trade binders (§4.1).
+- **Backup & sync:** so an inventory is never lost with a phone. See §9.
+
+### 6.1 Plans & monetization (decided: freemium + subscription + one-time purchase)
+The numbers below are **proposals** **[DECISION]**. The structure is decided.
+
+| | **Free** | **Premium** (subscription) | **Lifetime** (one-time purchase) |
+|---|---|---|---|
+| Binders | 2 | Tiered: e.g. 10 / 30 / unlimited | Same as the top subscription tier |
+| Photo page scans | e.g. 20 / month | Unlimited | Unlimited |
+| Manual adds, set tracker | ✅ | ✅ | ✅ |
+| Swaps and matching | ✅ | ✅ | ✅ |
+| **Recording trades** (inventories update on both phones) | ✅ | ✅ | ✅ |
+| **Trade history** (stored records, values at trade time, export) | Last trade only | ✅ Full history | ✅ Full history |
+| Cloud backup & sync | ❌ (on device only) | ✅ | ✅ |
+| Price refresh | Weekly | Daily | Daily |
+| Family: parent + child accounts | 1 child | Up to 4 children | Up to 4 children |
+
+- Recording a trade is **free for everyone**, because a swap only works if both sides' inventories stay correct. **Storing** trade history is the premium feature.
+- Purchases go through **Apple In-App Purchase** (StoreKit 2), which the App Store requires for digital features.
+- **Kids:** children never see a purchase screen. Upgrades happen from the parent account (Family Sharing where possible). **[VERIFY]** App Store kids-category rules on in-app purchases.
+- **Downgrade behavior:** a user over the free binder limit keeps read-only access to all binders and can swap from all of them, but can't add new pages until they're under the limit. Data is never deleted because of a plan change.
 
 ---
 
@@ -233,7 +271,7 @@ for_them = my.tradeables    ∩ their.wants
 - **Japanese prices:** likely sparse in free sources. **[VERIFY]** TCGdex Japanese price coverage. If it's poor, Scrydex (paid) covers Japanese cards. Show "no price data" rather than guessing.
 - **Accuracy gate:** before launch, compare our values against TCGplayer's public market prices for ~200 English cards and ~100 Japanese cards across rarities. **[DECISION]** tolerance, for example median error < 10%. If the free source fails the gate, switch to Scrydex.
 
-**[DECISION]** Budget ceiling for data per month. $0 is feasible for v1. Scrydex starts at about $29/mo; higher tiers cost more.
+**Data budget (decided):** **$0 for now**, using free sources only. Revisit Scrydex (from about $29/mo) if free price coverage fails the accuracy gate, especially for Japanese cards.
 
 ---
 
@@ -311,11 +349,11 @@ for_them = my.tradeables    ∩ their.wants
 - **Exit criteria:** measure precision and coverage against the §10 targets and decide go/adjust.
 
 ### Phase 1: MVP (iOS, Pokémon, English + Japanese, kid accounts)
-- Binders (freeform + set mode), photo intake with ✅/❓ and candidate picker, manual search
+- Binders (Set / Trade / Collect types), photo intake with ✅/❓ and candidate picker, manual search
 - Set tracker and automatic set-gap wish list
 - Values (single source, daily cache)
 - Swap via QR + nearby (Multipeer), match screen, value balance, record trade
-- Accounts (parent/child) + backup sync
+- Accounts (parent/child) + backup sync; Free / Premium / Lifetime plans (StoreKit 2)
 
 ### Phase 2
 - Permanent profile QR (adult accounts only) + web preview, trade history, proposal/counter flow polish
@@ -336,14 +374,18 @@ for_them = my.tradeables    ∩ their.wants
 - **The owner supplies real binder photos** for Phase 0.
 - **Catalog** seeded once from free sources, then updated per new set (§8.2).
 
+### Decided (round 2)
+- **Tradeable = binder type:** Set / Trade / Collect binders, with per-card **Keep** in Trade binders (§4.1). Duplicates aren't special.
+- **Many binders per user**, limited by plan.
+- **Monetization:** free (limited) + subscription + one-time lifetime purchase (§6.1).
+- **Recording trades:** included for everyone. Stored trade history is premium.
+- **Data budget:** $0 for now.
+
 ### Still open
-1. **Tradeable default:** only duplicates, only items explicitly flagged, or everything?
-2. **Accounts:** required from the start, or usable anonymously with optional sign-in for backup? Kid support pushes toward accounts.
-3. **Recording trades:** should a completed swap automatically move cards between both inventories?
-4. **Monetization:** free, freemium, subscription or one-time purchase? This affects the data budget. Note that monetizing child accounts has extra App Store restrictions.
-5. **Data budget:** $0 (free sources only), or a paid tier of Scrydex (from about $29/mo)?
-6. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use, and do we own a domain?
-7. **Cross-language wishes:** should a wish ever accept "any language"?
+1. **Plan numbers:** binder limits, scan limits and prices in §6.1.
+2. **Accounts:** the free tier could work without an account (on-device only) for adults. Kids always need a parent account. OK?
+3. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use, and do we own a domain?
+4. **Cross-language wishes:** should a wish ever accept "any language"?
 
 ---
 
