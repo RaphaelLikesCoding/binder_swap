@@ -38,6 +38,38 @@ def test_fetch_records_ok_and_missing_and_is_resumable(world):
         {"ok": 0, "missing": 0, "error": 0}
 
 
+def test_candidates_carry_the_set_and_number_the_picker_prints(world):
+    """The picker has to be decidable on sight.
+
+    Reprints share an illustration, so the visual score cannot separate them --
+    in the real EN index ~4% of cards have a near-identical twin. What tells
+    them apart is the set name and the printed number, so every candidate must
+    carry both without the caller going back to the catalog.
+    """
+    out, _ = world
+    cat = CatalogView(out / "catalog.sqlite", langs=["en"])
+    rec = Recognizer(ReferenceIndex.load(out / "index" / "en.npz"), cat)
+    photo = cv2.imread(str(out / "pages" / "trade_mixed.jpg"), cv2.IMREAD_COLOR)
+    result, _, _ = rec.recognize(photo, (3, 3))
+
+    slots = [s for s in result.slots if s.candidates]
+    assert slots, "no candidates produced"
+    for slot in slots:
+        assert len(slot.candidates) <= 4          # four options, per the picker
+        for c in slot.candidates:
+            assert c.set_name, f"{c.card_id} has no set name"
+            assert c.number_label, f"{c.card_id} has no printed number"
+            assert c.set_id
+
+
+def test_number_label_matches_what_is_printed_on_the_card():
+    from binderswap.recognition.recognizer import number_label
+    assert number_label("136", 189) == "136/189"
+    assert number_label("SV001", 198) == "SV001/198"
+    assert number_label("12", None) == "12"       # promos have no printed total
+    assert number_label(None, 189) == ""
+
+
 def test_plan_refetches_when_the_manifest_says_ok_but_the_files_are_not_there(world, tmp_path):
     """A manifest is not evidence that the images exist.
 

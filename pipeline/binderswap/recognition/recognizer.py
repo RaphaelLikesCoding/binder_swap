@@ -46,7 +46,7 @@ class Weights:
 
 @dataclass
 class Settings:
-    top_k: int = 8                   # candidates returned for the picker
+    top_k: int = 4                   # candidates shown in the picker (§5.5)
     visual_k: int = 30               # candidates pulled from the index
     verify_k: int = 5                # candidates re-ranked with ORB
     confirm_threshold: float = 0.90  # tuned by eval.py (§5.4 target: <1 in 200 wrong)
@@ -71,20 +71,31 @@ class CatalogView:
     def __init__(self, path: Path, langs: list[str] | None = None):
         con = sqlite3.connect(path)
         q = ("SELECT c.id, c.set_id, c.number, c.number_prefix, c.name, c.local_id, s.printed_total, "
-             "s.number_prefix FROM cards c JOIN sets s ON s.id = c.set_id")
+             "s.number_prefix, s.name, s.abbreviation FROM cards c JOIN sets s ON s.id = c.set_id")
         if langs:
             q += " WHERE c.lang IN (%s)" % ",".join("?" * len(langs))
         self.cards: dict[str, dict] = {}
         self.by_number: dict[tuple[int, int], list[str]] = collections.defaultdict(list)
         self.by_set_number: dict[tuple[str, int], str] = {}
-        for cid, set_id, number, prefix, name, local_id, total, set_prefix in con.execute(q, langs or []):
+        for (cid, set_id, number, prefix, name, local_id, total, set_prefix,
+             set_name, set_abbr) in con.execute(q, langs or []):
             self.cards[cid] = {"set_id": set_id, "number": number, "prefix": prefix, "name": name,
-                               "local_id": local_id, "printed_total": total}
+                               "local_id": local_id, "printed_total": total,
+                               "set_name": set_name, "set_abbreviation": set_abbr,
+                               "number_label": number_label(local_id, total)}
             if number is not None and total:
                 self.by_number[(number, total)].append(cid)
             if number is not None and prefix == set_prefix:
                 self.by_set_number.setdefault((set_id, number), cid)
         con.close()
+
+
+def number_label(local_id: str | None, printed_total: int | None) -> str:
+    """What is actually printed on the card: "136/189", or just "136" if the
+    set has no printed total (promos, and sets TCGdex has no count for)."""
+    if not local_id:
+        return ""
+    return f"{local_id}/{printed_total}" if printed_total else str(local_id)
 
 
 @dataclass
@@ -94,6 +105,12 @@ class Candidate:
     probability: float
     visual: float
     evidence: dict
+    # Shown in the picker next to the image, so a swipe is decided on sight.
+    # These are what separate cards the art alone cannot: reprints share an
+    # illustration but never a set, and rarely a number.
+    set_id: str = ""
+    set_name: str = ""
+    number_label: str = ""
 
 
 @dataclass
@@ -193,8 +210,12 @@ class Recognizer:
             return []
         m = max(r[0] for r in rows)
         z = sum(math.exp((r[0] - m) / w.temperature) for r in rows)
-        out = [Candidate(cid, self.catalog.cards[cid]["name"], math.exp((s - m) / w.temperature) / z, vis, e)
-               for s, cid, vis, e in rows]
+        out = []
+        for s_, cid, vis, e in rows:
+            c = self.catalog.cards[cid]
+            out.append(Candidate(cid, c["name"], math.exp((s_ - m) / w.temperature) / z, vis, e,
+                                 set_id=c["set_id"], set_name=c.get("set_name") or "",
+                                 number_label=c.get("number_label") or ""))
         out.sort(key=lambda c: -c.probability)
         return out
 
