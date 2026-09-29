@@ -266,6 +266,9 @@ for_them = my.tradeables    ∩ their.wants
 3. **New sets:** a scheduled job checks sources for new sets. New sets go through the same validation and review queue before publishing, and then the app downloads that set's catalog and recognition pack. Expect a few days' lag after release for community sources; Scrydex is usually faster.
 4. **Images:** we mirror images to our own storage/CDN, used for display and to build recognition embeddings. Card art is © The Pokémon Company, Nintendo, Creatures and GAME FREAK, regardless of which source serves it. **[VERIFY]** image terms with a lawyer before launch. Fan collection apps commonly display card images with a non-affiliation disclaimer, but that is a norm, not a license.
 
+**First build (September 2026, TCGdex @ `baddf4f0`):** 328 sets and 34,738 cards (21,290 English in 201 sets, 13,448 Japanese in 127 sets). English agrees with pokemon-tcg-data on **99.7%** of 20,497 cards compared. The ~150 disagreements sit in the review queue. Most are the week-old *30th Celebration: Classic Collection*, the LV.X naming, and "a"-suffix alternate prints that TCGdex lacks.
+**Japanese coverage is the weak spot.** 127 sets is well short of everything ever printed in Japanese, some sets are incomplete (e.g. `ja/SV4a` is missing 40 of 190 numbers), and about 3,600 Japanese cards have no rarity. Filling these gaps (contributing upstream to TCGdex, or Scrydex) is a Phase 1 task. See `pipeline/reports/`.
+
 ### 8.3 Price sources
 - **v1: prices from TCGdex's TCGplayer and Cardmarket fields**, cached daily on our server.
 - **Japanese prices:** likely sparse in free sources. **[VERIFY]** TCGdex Japanese price coverage. If it's poor, Scrydex (paid) covers Japanese cards. Show "no price data" rather than guessing.
@@ -296,6 +299,7 @@ for_them = my.tradeables    ∩ their.wants
 ### Stack decisions
 - **iOS client: native Swift/SwiftUI (decided).** The hard parts (camera, Vision, Core ML, MultipeerConnectivity, Nearby Interaction) are all native Apple frameworks. A cross-platform framework would put every one of them behind a bridge and still need an Android rewrite of those modules. The cost: Android later means a second client, though the backend, protocol, catalog and models are shared. The alternative is Kotlin Multiplatform for shared business logic (matching, models) with native UIs.
 - **[DECISION] Backend:** a managed option (Supabase or Firebase) for auth, database and storage, plus a small scheduled job for catalog and price ETL. It should be cheap and fast to ship. Avoid CloudKit-only sync, because it blocks Android.
+- **Built so far (`pipeline/`):** catalog build + cross-check, image fetch + visual index, the binder-page recognition prototype with an evaluation harness, and a reference implementation of the collection and trading rules. The rules come with shared JSON test vectors (`spec/vectors/`) that the Swift app must also pass.
 - **Offline-first:** the collection lives on the device. Recognition, matching and peer-to-peer swap all work with no signal. Sync happens when online.
 
 ---

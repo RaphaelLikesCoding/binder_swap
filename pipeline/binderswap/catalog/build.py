@@ -42,7 +42,7 @@ def git_commit(repo: Path) -> str:
 
 
 def export_records(tcgdex: Path, out: Path, langs: str) -> list[dict]:
-    subprocess.run(["bun", "run", str(EXPORTER), str(tcgdex), str(out), langs], check=True)
+    subprocess.run(["bun", "run", str(EXPORTER), str(tcgdex.resolve()), str(out.resolve()), langs], check=True)
     with out.open() as f:
         return [json.loads(line) for line in f if line.strip()]
 

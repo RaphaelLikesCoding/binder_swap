@@ -1,0 +1,49 @@
+{
+  "about": "What a user offers in a swap (spec §4.1). expected = sorted card_ids of tradeable copies.",
+  "sets": {"en/s": {"printed_total": 4, "cards": [[1, "en/s/1"], [2, "en/s/2"], [3, "en/s/3"], [4, "en/s/4"], [5, "en/s/5"]]}},
+  "cases": [
+    {
+      "name": "only trade binder copies not marked keep are offered",
+      "collection": {
+        "binders": [
+          {"id": "t", "name": "Trade", "type": "trade", "pages": [[{"card_id": "en/x/1"}, {"card_id": "en/x/2", "keep": true}, null, {"card_id": "en/x/3"}]]},
+          {"id": "c", "name": "Faves", "type": "collect", "pages": [[{"card_id": "en/x/4"}]]}
+        ],
+        "loose": [{"card_id": "en/x/5"}]
+      },
+      "expected": ["en/x/1", "en/x/3"]
+    },
+    {
+      "name": "duplicates are not special: a second copy in a collect binder is not offered",
+      "collection": {
+        "binders": [{"id": "c", "name": "Faves", "type": "collect", "pages": [[{"card_id": "en/x/1"}, {"card_id": "en/x/1"}]]}]
+      },
+      "expected": []
+    },
+    {
+      "name": "a card needed by the user's own set binder is never offered",
+      "collection": {
+        "binders": [
+          {"id": "s", "name": "My set", "type": "set", "set_id": "en/s", "pages": [[{"card_id": "en/s/1"}, null, {"card_id": "en/s/3"}, {"card_id": "en/s/4"}]]},
+          {"id": "t", "name": "Trade", "type": "trade", "pages": [[{"card_id": "en/s/2"}, {"card_id": "en/s/3"}]]}
+        ]
+      },
+      "expected": ["en/s/3"]
+    },
+    {
+      "name": "flipping a binder from collect to trade makes its cards tradeable",
+      "collection": {
+        "binders": [{"id": "b", "name": "Was collect", "type": "trade", "pages": [[{"card_id": "en/x/1"}, {"card_id": "en/x/2"}]]}]
+      },
+      "expected": ["en/x/1", "en/x/2"]
+    },
+    {
+      "name": "a manual Need also blocks offering that card",
+      "collection": {
+        "binders": [{"id": "t", "name": "Trade", "type": "trade", "pages": [[{"card_id": "en/x/1"}, {"card_id": "en/x/2"}]]}],
+        "manual_wishes": [{"card_id": "en/x/1", "priority": "need", "quantity": 2}]
+      },
+      "expected": ["en/x/2"]
+    }
+  ]
+}

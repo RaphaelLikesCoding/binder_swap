@@ -1,0 +1,57 @@
+name: catalog-build
+
+# Rebuilds the card catalog from TCGdex, cross-checks English against
+# pokemon-tcg-data, and (optionally) downloads card images and builds the
+# visual index. Run manually after a new set releases, or weekly.
+on:
+  workflow_dispatch:
+    inputs:
+      images:
+        description: "Also download images and build the visual index"
+        type: boolean
+        default: false
+      langs:
+        description: "Languages"
+        default: "en,ja"
+  schedule:
+    - cron: "17 6 * * 1"  # Mondays 06:17 UTC
+
+jobs:
+  catalog:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: oven-sh/setup-bun@v2
+      - run: pip install -e .
+      - name: Build catalog
+        run: python -m binderswap.catalog.build --langs "${{ inputs.langs || 'en,ja' }}"
+      - name: Cross-check English
+        run: python -m binderswap.catalog.crosscheck
+      - name: Download images (high quality, for the index)
+        if: ${{ inputs.images }}
+        run: python -m binderswap.images.fetch --langs "${{ inputs.langs || 'en,ja' }}" --rate 10
+      - name: Build visual index
+        if: ${{ inputs.images }}
+        run: python -m binderswap.images.index --langs "${{ inputs.langs || 'en,ja' }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catalog
+          path: |
+            pipeline/build/catalog/catalog.sqlite
+            pipeline/build/catalog/REPORT.md
+            pipeline/build/catalog/CROSSCHECK.md
+            pipeline/build/catalog/packs/
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.images }}
+        with:
+          name: visual-index
+          path: |
+            pipeline/build/index/
+            pipeline/build/images/manifest.sqlite

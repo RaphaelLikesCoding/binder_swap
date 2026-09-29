@@ -7,13 +7,15 @@
 // (card, language) pair; normalization and validation happen in Python.
 
 import { readdirSync, statSync, writeFileSync } from 'node:fs'
-import { join, relative, basename } from 'node:path'
+import { basename, join, relative, resolve } from 'node:path'
 
-const [root, outPath, langArg] = process.argv.slice(2)
-if (!root || !outPath) {
+const [rootArg, outPath, langArg] = process.argv.slice(2)
+if (!rootArg || !outPath) {
 	console.error('usage: bun run tcgdex_export.ts <cards-database dir> <out.ndjson> [langs]')
 	process.exit(2)
 }
+// Absolute paths: bun treats relative import specifiers as package names.
+const root = resolve(rootArg)
 const langs = (langArg ?? 'en,ja').split(',')
 
 // Pokémon TCG Pocket is a digital-only game; its "cards" are never in binders.
@@ -71,3 +73,5 @@ for (const folder of ['data', 'data-asia']) {
 }
 writeFileSync(outPath, lines.join('\n') + '\n')
 console.error(`exported ${lines.length} card-language records (${failures} import failures)`)
+// A partial catalog is worse than none: fail loudly so CI never publishes it.
+if (failures > 0 || lines.length === 0) process.exit(1)

@@ -1,0 +1,43 @@
+{
+  "about": "Cross-reference two trade profiles (spec §7.4). Each side lists tradeables and wants. expected lists [card_id, variant, priority] in ranked order.",
+  "cases": [
+    {
+      "name": "basic two-way match, needs before wants, then by value",
+      "mine": {"tradeables": [{"card_id": "a"}, {"card_id": "b"}, {"card_id": "z"}],
+               "wants": [{"card_id": "x", "priority": "want"}, {"card_id": "y", "priority": "need"}]},
+      "theirs": {"tradeables": [{"card_id": "x"}, {"card_id": "y"}, {"card_id": "q"}],
+                 "wants": [{"card_id": "b"}, {"card_id": "a"}]},
+      "prices": {"a": 5.0, "b": 12.0, "x": 30.0, "y": 1.0},
+      "expected_for_me": [["y", "normal", "need"], ["x", "normal", "want"]],
+      "expected_for_them": [["b", "normal", "want"], ["a", "normal", "want"]],
+      "expected_near_misses": 0
+    },
+    {
+      "name": "variant-specific wish rejects other variants (near miss); any-variant wish accepts",
+      "mine": {"tradeables": [], "wants": [{"card_id": "c", "variant": "reverse"}, {"card_id": "d"}]},
+      "theirs": {"tradeables": [{"card_id": "c", "variant": "holo"}, {"card_id": "d", "variant": "reverse"}], "wants": []},
+      "prices": {},
+      "expected_for_me": [["d", "reverse", "want"]],
+      "expected_for_them": [],
+      "expected_near_misses": 1
+    },
+    {
+      "name": "minimum condition is respected",
+      "mine": {"tradeables": [], "wants": [{"card_id": "e", "min_condition": "LP"}]},
+      "theirs": {"tradeables": [{"card_id": "e", "condition": "MP"}, {"card_id": "e", "condition": "NM"}], "wants": []},
+      "prices": {},
+      "expected_for_me": [["e", "normal", "want"]],
+      "expected_for_them": [],
+      "expected_near_misses": 1
+    },
+    {
+      "name": "quantity: two copies offered, one wanted -> one match",
+      "mine": {"tradeables": [], "wants": [{"card_id": "f", "quantity": 1}]},
+      "theirs": {"tradeables": [{"card_id": "f"}, {"card_id": "f"}], "wants": []},
+      "prices": {},
+      "expected_for_me": [["f", "normal", "want"]],
+      "expected_for_them": [],
+      "expected_near_misses": 0
+    }
+  ]
+}

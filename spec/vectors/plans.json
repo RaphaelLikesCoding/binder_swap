@@ -1,0 +1,19 @@
+{
+  "about": "Plan limits (spec §6.1; numbers are proposals).",
+  "binder_limits": [
+    {"plan": "free", "binders": 1, "can_add": true},
+    {"plan": "free", "binders": 2, "can_add": false},
+    {"plan": "premium_10", "binders": 9, "can_add": true},
+    {"plan": "premium_10", "binders": 10, "can_add": false},
+    {"plan": "premium_unlimited", "binders": 500, "can_add": true},
+    {"plan": "lifetime", "binders": 500, "can_add": true}
+  ],
+  "downgrade": [
+    {"plan": "free", "binders": 2, "can_add_pages": true},
+    {"plan": "free", "binders": 5, "can_add_pages": false}
+  ],
+  "trade_history": [
+    {"plan": "free", "records": ["2026-01-01", "2026-03-01", "2026-02-01"], "visible": ["2026-03-01"]},
+    {"plan": "premium_10", "records": ["2026-01-01", "2026-03-01", "2026-02-01"], "visible": ["2026-03-01", "2026-02-01", "2026-01-01"]}
+  ]
+}

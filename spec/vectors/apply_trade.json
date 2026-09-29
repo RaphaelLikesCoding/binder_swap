@@ -1,0 +1,27 @@
+{
+  "about": "Recording a trade (spec §6.1). Given copies leave trade binders; received copies go to loose.",
+  "cases": [
+    {
+      "name": "given card leaves its pocket; received card is loose",
+      "collection": {"binders": [{"id": "t", "name": "T", "type": "trade", "pages": [[{"card_id": "a"}, {"card_id": "b"}]]}]},
+      "gave": [{"card_id": "a"}],
+      "got": [{"card_id": "x", "variant": "reverse"}],
+      "expected_pages": {"t": [[null, {"card_id": "b"}]]},
+      "expected_loose": [{"card_id": "x", "variant": "reverse"}]
+    },
+    {
+      "name": "a kept card cannot be given",
+      "collection": {"binders": [{"id": "t", "name": "T", "type": "trade", "pages": [[{"card_id": "a", "keep": true}]]}]},
+      "gave": [{"card_id": "a"}],
+      "got": [],
+      "expected_error": true
+    },
+    {
+      "name": "a card in a set binder cannot be given",
+      "collection": {"binders": [{"id": "s", "name": "S", "type": "set", "pages": [[{"card_id": "a"}]]}]},
+      "gave": [{"card_id": "a"}],
+      "got": [],
+      "expected_error": true
+    }
+  ]
+}

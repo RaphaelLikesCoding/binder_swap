@@ -1,0 +1,46 @@
+{
+  "about": "Open wishes: unfulfilled manual wishes + Set binder gaps (spec §4.1). expected = [card_id, priority, source] sorted.",
+  "sets": {"en/s": {"printed_total": 4, "cards": [[1, "en/s/1"], [2, "en/s/2"], [3, "en/s/3"], [4, "en/s/4"], [5, "en/s/5"]]}},
+  "cases": [
+    {
+      "name": "set binder gaps are needs; secret rares above the printed total are excluded by default",
+      "collection": {"binders": [{"id": "s", "name": "S", "type": "set", "set_id": "en/s", "pages": [[{"card_id": "en/s/1"}, null, {"card_id": "en/s/3"}, null]]}]},
+      "expected": [["en/s/2", "need", "set_gap"], ["en/s/4", "need", "set_gap"]]
+    },
+    {
+      "name": "include_secrets adds numbers above the printed total",
+      "collection": {"binders": [{"id": "s", "name": "S", "type": "set", "set_id": "en/s", "include_secrets": true, "pages": [[{"card_id": "en/s/1"}, {"card_id": "en/s/2"}, {"card_id": "en/s/3"}, {"card_id": "en/s/4"}]]}]},
+      "expected": [["en/s/5", "need", "set_gap"]]
+    },
+    {
+      "name": "trade and collect binders never create gaps",
+      "collection": {"binders": [
+        {"id": "t", "name": "T", "type": "trade", "set_id": "en/s", "pages": [[null, null]]},
+        {"id": "c", "name": "C", "type": "collect", "set_id": "en/s", "pages": [[null]]}
+      ]},
+      "expected": []
+    },
+    {
+      "name": "a card owned elsewhere is still a gap in the set binder, with a hint where it is",
+      "collection": {"binders": [
+        {"id": "s", "name": "S", "type": "set", "set_id": "en/s", "pages": [[{"card_id": "en/s/1"}, {"card_id": "en/s/2"}, {"card_id": "en/s/3"}]]},
+        {"id": "t", "name": "T", "type": "trade", "pages": [[{"card_id": "en/s/4"}]]}
+      ]},
+      "expected": [["en/s/4", "need", "set_gap"]],
+      "expected_owned_elsewhere": {"en/s/4": ["t"]}
+    },
+    {
+      "name": "manual wishes are fulfilled by owned copies anywhere, respecting variant and quantity",
+      "collection": {
+        "binders": [{"id": "c", "name": "C", "type": "collect", "pages": [[{"card_id": "en/x/1"}, {"card_id": "en/x/2", "variant": "normal"}, {"card_id": "en/x/3"}]]}],
+        "manual_wishes": [
+          {"card_id": "en/x/1"},
+          {"card_id": "en/x/2", "variant": "reverse"},
+          {"card_id": "en/x/3", "quantity": 2, "priority": "need"},
+          {"card_id": "en/x/9"}
+        ]
+      },
+      "expected": [["en/x/2", "want", "manual"], ["en/x/3", "need", "manual"], ["en/x/9", "want", "manual"]]
+    }
+  ]
+}

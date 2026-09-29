@@ -1,0 +1,89 @@
+{
+  "about": "Suggest a value-balanced subset (spec \u00a77.1). Values in USD; tolerance 10%. expected = card_ids kept on each side.",
+  "cases": [
+    {
+      "name": "drop the heavier side's items that best close the gap, wants before needs",
+      "for_me": [
+        [
+          "x",
+          "want",
+          30.0
+        ],
+        [
+          "y",
+          "need",
+          10.0
+        ]
+      ],
+      "for_them": [
+        [
+          "a",
+          "want",
+          12.0
+        ],
+        [
+          "b",
+          "want",
+          8.0
+        ]
+      ],
+      "expected_get": [
+        "y"
+      ],
+      "expected_give": [
+        "b"
+      ]
+    },
+    {
+      "name": "already balanced within tolerance: keep everything",
+      "for_me": [
+        [
+          "x",
+          "want",
+          10.0
+        ]
+      ],
+      "for_them": [
+        [
+          "a",
+          "want",
+          9.5
+        ]
+      ],
+      "expected_get": [
+        "x"
+      ],
+      "expected_give": [
+        "a"
+      ]
+    },
+    {
+      "name": "wants are dropped before needs, even when dropping a need would balance better",
+      "for_me": [
+        [
+          "n1",
+          "need",
+          20.0
+        ],
+        [
+          "w1",
+          "want",
+          2.0
+        ]
+      ],
+      "for_them": [
+        [
+          "a",
+          "want",
+          5.0
+        ]
+      ],
+      "expected_get": [
+        "n1"
+      ],
+      "expected_give": [
+        "a"
+      ]
+    }
+  ]
+}

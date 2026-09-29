@@ -1,0 +1,25 @@
+name: pipeline-tests
+
+on:
+  push:
+    paths: ["pipeline/**", "spec/vectors/**", ".github/workflows/pipeline-tests.yml"]
+  pull_request:
+    paths: ["pipeline/**", "spec/vectors/**", ".github/workflows/pipeline-tests.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Tesseract (collector-number OCR)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr
+      - name: Install package
+        run: pip install -e ".[dev]"
+      - name: Test
+        run: pytest -q

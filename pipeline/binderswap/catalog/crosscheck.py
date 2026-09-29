@@ -98,8 +98,9 @@ def map_sets(con: sqlite3.Connection, ptcg_sets: dict) -> tuple[dict[str, str], 
     by_code_date = {((s.get("ptcgoCode") or "").lower(), s["releaseDate"].replace("/", "-")): k
                     for k, s in ptcg_sets.items() if s.get("ptcgoCode")}
     by_name_date = {(norm_name(s["name"]), s["releaseDate"].replace("/", "-")): k for k, s in ptcg_sets.items()}
-    mapping: dict[str, str] = {k: v for k, v in SET_OVERRIDES.items() if v in ptcg_sets}
-    rows = con.execute("SELECT id, source_set_id, name, abbreviation, release_date FROM sets WHERE lang='en'")
+    rows = con.execute("SELECT id, source_set_id, name, abbreviation, release_date FROM sets WHERE lang='en'").fetchall()
+    ours_all = [r[0] for r in rows]
+    mapping: dict[str, str] = {k: v for k, v in SET_OVERRIDES.items() if v in ptcg_sets and k in ours_all}
     for sid, src, name, abbr, date in rows:
         if sid in mapping:
             continue
@@ -108,7 +109,6 @@ def map_sets(con: sqlite3.Connection, ptcg_sets: dict) -> tuple[dict[str, str], 
                   or by_name_date.get((norm_name(name), date)))
         if theirs and theirs not in mapping.values():
             mapping[sid] = theirs
-    ours_all = [r[0] for r in con.execute("SELECT id FROM sets WHERE lang='en'")]
     unmatched_ours = sorted(s for s in ours_all if s not in mapping)
     unmatched_theirs = sorted(set(ptcg_sets) - set(mapping.values()))
     return mapping, unmatched_ours, unmatched_theirs
