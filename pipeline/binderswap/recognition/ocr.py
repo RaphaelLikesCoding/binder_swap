@@ -10,6 +10,7 @@ from __future__ import annotations
 import collections
 import re
 import shutil
+import os
 import subprocess
 from dataclasses import dataclass
 
@@ -40,14 +41,31 @@ def available() -> bool:
     return shutil.which("tesseract") is not None
 
 
+# Tesseract on Linux is built with OpenMP and sizes a thread team per call from
+# the core count. We already read the pockets concurrently, so each of those
+# calls would spawn its own team: on a 2-vCPU runner that is four-plus threads
+# fighting over two cores, and every call overran its timeout. One thread per
+# call is also faster for single small images, which is all we ever give it.
+# Harmless where Tesseract has no OpenMP, as on macOS via Homebrew.
+_ENV = {**os.environ, "OMP_THREAD_LIMIT": "1", "OMP_NUM_THREADS": "1"}
+
+# Generous: this is a guard against a hung binary, not a performance budget.
+_TIMEOUT = float(os.environ.get("BS_OCR_TIMEOUT", "60"))
+
+
 def _tesseract(img: np.ndarray, psm: int) -> str:
     ok, png = cv2.imencode(".png", img)
     if not ok:
         return ""
-    res = subprocess.run(
-        ["tesseract", "stdin", "stdout", "--psm", str(psm), "-l", "eng",
-         "-c", f"tessedit_char_whitelist={_WHITELIST}"],
-        input=png.tobytes(), capture_output=True, timeout=20)
+    try:
+        res = subprocess.run(
+            ["tesseract", "stdin", "stdout", "--psm", str(psm), "-l", "eng",
+             "-c", f"tessedit_char_whitelist={_WHITELIST}"],
+            input=png.tobytes(), capture_output=True, timeout=_TIMEOUT, env=_ENV)
+    except subprocess.TimeoutExpired:
+        # A slow or wedged OCR call must degrade the read, not fail the page:
+        # the number band is one signal among several (SPEC 5.4).
+        return ""
     return res.stdout.decode(errors="ignore").strip()
 
 
