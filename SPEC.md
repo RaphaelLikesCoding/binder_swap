@@ -97,7 +97,7 @@ TradeRecord                               // written when both sides accept
 ```
 
 ### 4.1 Binder types (decided)
-A user can have many binders (the limit depends on plan, §6.1). Each binder has one **type**, and the user can flip it with a switch at any time:
+A user can have **any number of binders on any plan** (§6.2 limits cards, not binders — a collector's binder count reflects how they organise, not how much they own). Each binder has one **type**, and the user can flip it with a switch at any time:
 
 | Type | Cards in it are… | Empty slots are… | Typical use |
 |---|---|---|---|
@@ -175,86 +175,99 @@ Every user confirmation or correction is a labeled example. Store these locally.
 - **Keep flags:** per card in Trade binders (§4.1).
 - **Backup & sync:** so an inventory is never lost with a phone. See §9.
 
-### 6.1 Plans & monetization (decided: freemium + subscription + one-time purchase)
-The numbers below are **proposals** **[DECISION]**. The structure is decided.
+### 6.1 Plans & monetization (decided: freemium + subscription)
 
-| | **Free** | **Premium** (subscription) | **Lifetime** (one-time purchase) |
-|---|---|---|---|
-| Binders | 2 | Tiered: e.g. 10 / 30 / unlimited | Same as the top subscription tier |
-| Photo page scans | e.g. 20 / month | Unlimited | Unlimited |
-| Manual adds, set tracker | ✅ | ✅ | ✅ |
-| Swaps and matching | ✅ | ✅ | ✅ |
-| **Recording trades** (inventories update on both phones) | ✅ | ✅ | ✅ |
-| **Trade history** (stored records, values at trade time, export) | Last trade only | ✅ Full history | ✅ Full history |
-| Cloud backup & sync | ❌ (on device only) | ✅ | ✅ |
-| Price refresh | Weekly | Daily | Daily |
-| Family: parent + child accounts | 1 child | Up to 4 children | Up to 4 children |
+Free tier plus one subscription. **No lifetime tier** (§6.2), and no
+consumables — nothing is sold by the scan or by the card.
 
-- Recording a trade is **free for everyone**, because a swap only works if both sides' inventories stay correct. **Storing** trade history is the premium feature.
-- Purchases go through **Apple In-App Purchase** (StoreKit 2), which the App Store requires for digital features.
-- **Kids:** children never see a purchase screen. Upgrades happen from the parent account (Family Sharing where possible). **[VERIFY]** App Store kids-category rules on in-app purchases.
-- **Downgrade behavior:** a user over the free binder limit keeps read-only access to all binders and can swap from all of them, but can't add new pages until they're under the limit. Data is never deleted because of a plan change.
+- Purchases go through **Apple In-App Purchase** (StoreKit 2), which the App
+  Store requires for digital features.
+- **Children never see a purchase screen.** A child's device inherits Premium
+  through **Family Sharing** (§11); there is no child account and no upgrade
+  path from a child's device.
+- **Trading is the paid product.** Matching, the assisted swap flow and trade
+  history are Premium. A free user can still adjust their own collection by
+  hand after a physical trade — they keep full edit rights on local data
+  (§6.2) — they simply do not get the matching or the guided exchange.
+- **Downgrade never destroys anything.** A lapsed member keeps every card,
+  binder and wish list on the device and can keep editing them. What lapses is
+  values, matching and trading, backup, and catalogue updates.
 
-### 6.2 Plan numbers (proposal, for the [DECISION] in §6.1)
+The numbers, and what sits on each side of the line, are in §6.2.
 
-Concrete numbers so the paywall can be built and tested. Each is tied to a
-reason, so moving one is a judgement about that reason rather than a guess.
+### 6.2 Plans (decided)
 
-| | **Free** | **Premium** $3.99/mo or $29.99/yr | **Lifetime** $79.99 |
-|---|---|---|---|
-| Binders | **2** | **Unlimited** | Unlimited |
-| Pages per binder | **30** (≈270 cards at 9-pocket) | Unlimited | Unlimited |
-| Photo page scans | **30 / month** | Unlimited | Unlimited |
-| Wish list items | **100** | Unlimited | Unlimited |
-| Trade history | Last **3** | Full + CSV export | Full + CSV export |
-| Cloud backup & sync | ❌ | ✅ | ✅ |
-| Price refresh | Weekly | Daily | Daily |
-| Child accounts | 1 | 4 | 4 |
+**$9.99/month or $79.99/year. No lifetime tier.** The annual saves 33%, which is
+the point: an annual subscription removes eleven separate churn decisions, and
+this hobby is seasonal — trading spikes around set releases and card shows, so
+a monthly plan is only obviously worth it a few months a year.
 
-**Why these numbers.**
-- **30 scans/month** is the load-bearing one. It has to be generous enough that
-  a new user digitises a real binder and sees the product work, and small
-  enough that a heavy cataloguer converts. A 9-pocket binder page is one scan,
-  so 30 scans is a full 30-page binder — one complete binder per month free.
-- **2 binders** matches the natural split a collector already has: one Set
-  binder, one Trade binder. The third binder is the moment the habit has
-  formed, which is the right place for the ask.
-- **Lifetime at ~2x the annual** is the standard ratio for a hobby app and puts
-  it in impulse range at a card-show table. It must stay worth selling: if
-  server costs per user ever exceed roughly $1.50/yr, lifetime becomes a
-  liability and should be retired for new buyers rather than repriced.
-- **Trade history last 3** keeps the free tier honest — recording a trade is
-  free for everyone (§6.1) because a swap breaks if inventories diverge, but
-  the archive is the paid artefact.
+No lifetime, because every user costs money forever (price refresh, catalogue
+updates, relay) and a one-time fee is a bet against that which cannot be
+unwound. A time-boxed founder edition at launch is the only version worth
+revisiting, and only to fund early development.
 
-**Free tier without an account (answers open question 2, §14).** Adults get the
-whole local product with no sign-up: binders, scans, wish list, in-person
-swaps. An account is required only for cloud sync, remote proposals, a public
-profile, or any child account. This is worth the extra work — sign-up before
-first value is the largest drop-off in a hobby app, and it also keeps a large
-share of users entirely out of scope for data-protection obligations, because
-we never hold their data.
+| | **Free** | **Premium** — $9.99/mo or $79.99/yr |
+|---|---|---|
+| Binders | **Unlimited**, any type | Unlimited |
+| Cards tracked | **200** | Unlimited |
+| Scan a page, catalogue it | ✅ | ✅ |
+| Wish list (manual + set gaps) | ✅ | ✅ |
+| **Card values** | ❌ **not shown** | ✅ current |
+| **Matching & trading** | ❌ (see the count only) | ✅ |
+| **Backup & restore** | ❌ | ✅ |
+| New-set catalogue updates | ❌ frozen at install | ✅ |
+| Child devices (Family Sharing) | — | ✅ |
 
-**Counting rule.** A scan is counted when a page is *committed to a binder*,
-not when the shutter fires. Retries after a bad photo must not burn quota, or
-the limit punishes exactly the users whose photos we handle worst.
+**One limit, not three.** Cards are the unit of value, so the free tier has a
+single number a paywall screen can state in one line. Binders are unlimited
+because limiting them prices the wrong thing — a collector's binder count
+reflects how they organise, not how much they own.
 
-**Grace, not a wall.** At the limit, the current page still completes and saves.
-The paywall appears after it, never mid-task.
+**[DECISION] 200 counts distinct cards, not copies.** A trade binder is mostly
+duplicates; four copies of one card is ordinary. Counting copies would make the
+limit bite hardest on the exact use case the product is for.
 
----
+**Why values are absent rather than stale.** A week-old price is worse than no
+price in a trading app: someone trades on it, discovers it was stale, and
+blames us. Values are either **current or not shown**. This also means the free
+tier carries no price-serving cost at all.
+
+**Why the free tier sees the match count but cannot act on it.** "3 collectors
+near you have 7 cards you need" is the strongest conversion prompt in the
+product, and unlike a storage wall it fires again every time the collection or
+the neighbourhood changes. A volume cap converts once; this recurs.
+
+**Conversion is deliberately not the card cap.** The cap is an *acquisition*
+gate — it gets a decision made. It cannot be the *retention* mechanism, because
+once paid through, nothing recurring holds the user, and a free tier generous
+enough to finish a set would fund the user's completion and then lose them.
+Retention rests on the three things that keep being true: prices keep moving,
+sets keep releasing, and trading is a network re-entered every season.
+
+**Downgrade keeps the collection and the ability to edit it.** A lapsed member
+keeps every card, binder and wish list on the device, and can still add, edit
+and delete. They lose values, matching and trading, backup, and catalogue
+updates. Locking someone out of editing their own local data earns no revenue —
+a user who will not pay for trading will not pay to rename a binder — and reads
+as holding a collection hostage.
+
+**Grace, not a wall.** At the limit the page being scanned still completes and
+saves. The paywall appears after it, never mid-task. Retries after a bad photo
+never count against anything.
+
 
 ## 6.3 Entitlements and receipts
 
 - **StoreKit 2**, with `Transaction.currentEntitlements` as the source of truth
   on device. No receipt parsing.
-- **Server-side validation** for anything the server acts on (cloud sync,
-  remote proposals): the app sends the signed transaction JWS, the server
+- **Server-side validation** for anything the server acts on (the relay,
+  profile hosting): the app sends the signed transaction JWS, the server
   verifies it against Apple's public keys and stores the resulting entitlement
   with its expiry. Never trust a client-asserted plan for a server-side limit.
 - **App Store Server Notifications V2** for renewals, cancellations, refunds,
   billing retry and grace period. A refund must revoke the entitlement, and a
-  revoked Lifetime must degrade to Free without deleting data (§6.1).
+  refund must degrade the device to Free without deleting data (§6.1).
 - **Restore Purchases** must exist as a visible control. Its absence is a
   common rejection under Guideline 3.1.1, and it is the only recovery path for
   a user who reinstalls or changes device.
@@ -271,69 +284,76 @@ submission.
 
 | Gate | Requirement | Where it lands |
 |---|---|---|
-| **In-app account deletion** | Any app that creates an account must let the user delete it **in the app**, not only by email or web form. Required since June 2022 (Guideline 5.1.1(v)). | Settings → Account → Delete account. Deletes server-side data, not just the session. Child accounts deletable by the parent. |
+| **In-app account deletion** | Required since June 2022 (Guideline 5.1.1(v)) for any app that creates an account. Local-first makes this nearly free: most users never create one. | Settings → Delete account, for the profile/relay account only. Also offer "delete all my data", which is a local wipe plus removal of any backup in the user's own iCloud. |
 | **Report and block** | An app where users can see other users' content or contact each other needs a way to report content, block a user, and reach us — Guideline 1.2. Profiles, proposals and public binder previews all qualify. | Report on profile and on each proposal; block list; 24h triage commitment. |
 | **Restore purchases** | Guideline 3.1.1. | §6.3 |
 | **Privacy nutrition labels** | Declared at submission and must match reality, including anything an SDK collects on our behalf. | Filled from a data inventory, not from memory. |
 | **Sign-in options** | If we offer a third-party login (Google, Facebook), Apple requires an equivalent privacy-preserving option alongside it — in practice Sign in with Apple. Offering only email avoids the requirement. **[DECISION]** whether social login is worth it at all. | §6.5 |
-| **Kids Category** | **[DECISION]** whether to *list in* the Kids Category. Supporting children (§11) does not require it. Listing brings hard constraints: no third-party analytics or advertising, and IAP behind a parental gate. | See below. |
+| **Kids Category** | **Decided: do not list there in v1.** Supporting children (§11) does not require it, and listing bans third-party analytics — the one thing needed to diagnose recognition failures in the field. 9+ or 12+ in the normal category. | §11 |
 | **Account-based app, no login wall** | An app must not require an account for features that do not need one (Guideline 5.1.1(i)). Our no-account free tier satisfies this by design. | §6.2 |
 
-**Recommendation on the Kids Category: do not list there in v1.** Supporting
-kid collectors through parent-managed accounts (§11) is the actual product
-goal, and that works in the normal category with a 9+ or 12+ rating. Listing in
-the Kids Category bans third-party analytics outright — which would remove our
-ability to diagnose recognition failures in the field, the one thing the
-product most needs early. Revisit once accuracy is proven.
+**Kids Category: decided, do not list there in v1.** Supporting kid collectors
+through Family Sharing (§11) is the actual product goal, and it works in the
+normal category at 9+ or 12+. Listing in the Kids Category bans third-party
+analytics outright, removing our ability to diagnose recognition failures in
+the field — the thing the product most needs early. Revisit once accuracy is
+proven.
 
 ---
 
-## 6.5 Accounts, authentication and backend security
+## 6.5 Local-first: what the backend does and does not hold
 
-**[DECISION] resolved in §9 as managed (Supabase or Firebase).** The items below
-apply to either.
+**Collections never leave the device.** The cloud serves reference data —
+catalogue, prices, index packs — and relays a trade when two people are not in
+the same room. It stores no binders, no wish lists and no trade history.
 
-**Authentication**
-- **Email one-time code or magic link** as the default. No passwords means no
-  password reuse, no reset flow, and nothing to breach.
-- **Sign in with Apple** if we add any social login (§6.4), and worth offering
-  regardless on iOS — it is one tap and yields a private relay address.
-- **No account at all** for the local-only free tier (§6.2).
-- **Child accounts have no independent credential.** They are created by, and
-  reachable only through, the parent account (§11).
+This is not only a cost decision:
 
-**Authorisation — the part that is easy to get wrong**
-- **Row-level security on every table**, written so the default is deny. A
-  managed backend exposes the database to the client directly, so a missing
-  policy is not a bug in our code, it is a public table.
-- **Server-side enforcement of every plan limit.** Binder count, scan quota and
-  history depth are checked where the data is written. A client-side limit is a
-  display convenience, and treating it as enforcement is how a freemium app
-  ends up free.
-- **A user may read another user's binder only when that binder is published**,
-  and a published binder exposes card ids and counts — never location, contact
-  details, or a child's identifiers.
+- **Trading works with no signal.** Card shows and game stores have famously
+  bad reception, which is exactly where this app is used.
+- **Most of §11 stops applying.** COPPA and GDPR-K obligations attach to
+  *holding* a child's data. Holding none removes the obligation rather than
+  managing it.
+- **The security surface collapses with it.** A managed backend exposes tables
+  to the client directly, so a missing row-level-security policy is a public
+  table rather than a bug — the single easiest way to leak everything. With no
+  user tables there is no policy to forget.
 
-**Abuse and cost control**
-- **Rate limits** per account and per IP on: scan upload, proposal creation,
-  profile lookup, and QR resolution. Scan upload is the expensive one and the
-  obvious way to run up a bill.
-- **A public profile QR is a permanent identifier.** It must be revocable and
-  regenerable, and it must never exist for a child account (§11).
-- **Trade proposals are rate-limited and blockable**, because an unsolicited
-  proposal is a message channel whether or not it carries text.
+**Backup is the user's own storage, and is a Premium feature.**
+- Automatic encrypted backup to the user's **iCloud Drive / Files**, restorable
+  on a new device. It is their storage, not ours: nothing to pay for, nothing
+  to breach, nothing to subpoena. It is also per-platform, so it does not carry
+  the Android problem that CloudKit *sync* would (§9).
+- **[OPTION, not taken]** Manual export free / automatic backup paid. Manual
+  export costs nothing to offer and defuses "the app lost my collection", which
+  is the review that damages a collection app most. Currently backup is Premium
+  only; revisit if support volume argues otherwise.
+- Backup carries collection data only — never photographs of pages.
 
-**Data**
-- **TLS everywhere; device data encrypted at rest** via file protection.
-- **Photos are processed and discarded.** The page image is not retained after
-  recognition unless the user explicitly opts in to contributing it (§5.6), and
-  never for a child account.
-- **Export and delete** are the same mechanism the deletion gate needs (§6.4):
-  full export as CSV/JSON, hard delete server-side.
-- **Retention:** trade history for as long as the account lives; recognition
-  telemetry aggregated, with no image retained.
+**Accounts**
+- **No account for the free tier, and none for local use at all.** Adults get
+  binders, scanning, wish lists and in-person swaps with no sign-up. Sign-up
+  before first value is the largest drop-off in a hobby app.
+- **Entitlement, not identity.** Premium is an Apple entitlement (§6.3), so
+  paying requires no account of ours. An account is needed only for a public
+  profile or remote proposals.
+- **Children need no account of their own.** A child's device inherits Premium
+  through **Family Sharing**, their collection is local, and trades are in
+  person. There is nothing to create, consent to, or delete.
+- Where an account does exist: **email one-time code**, no passwords — nothing
+  to reuse, reset, or breach. Sign in with Apple if any social login is offered
+  (§6.4).
 
----
+**What still needs server-side care**
+- **Entitlement validation** for anything the server acts on — relay, profile
+  hosting (§6.3). Never trust a client-asserted plan.
+- **Rate limits** per device and per IP on relay, profile lookup and QR
+  resolution, since those are the only paths that cost us money.
+- **A public profile QR is a permanent identifier**: revocable, regenerable,
+  and never issued to a child.
+- **Photographs are processed and discarded**, never retained unless the user
+  opts in to contributing training data (§5.6), and never for a child.
+
 
 ## 6.6 Experience decisions the measurements force
 
@@ -468,19 +488,21 @@ for_them = my.tradeables    ∩ their.wants
 └───────────────┬────────────────────────────────┘
                 │ HTTPS
 ┌───────────────▼────────────────────────────────┐
-│ Backend (thin)                                 │
+│ Backend (thin) — holds NO collections          │
 │ • Catalog + price cache (daily ETL from APIs)  │
 │ • Embedding-index packs per set (CDN)          │
-│ • Accounts, sync/backup, profile links         │
+│ • Profile links (opt-in, adults only)          │
 │ • Swap relay (when not peer-to-peer)           │
 └────────────────────────────────────────────────┘
+         backup goes to the USER's iCloud Drive,
+         never to us (Premium, §6.5)
 ```
 
 ### Stack decisions
 - **iOS client: native Swift/SwiftUI (decided).** The hard parts (camera, Vision, Core ML, MultipeerConnectivity, Nearby Interaction) are all native Apple frameworks. A cross-platform framework would put every one of them behind a bridge and still need an Android rewrite of those modules. The cost: Android later means a second client, though the backend, protocol, catalog and models are shared. The alternative is Kotlin Multiplatform for shared business logic (matching, models) with native UIs.
-- **[DECISION] Backend:** a managed option (Supabase or Firebase) for auth, database and storage, plus a small scheduled job for catalog and price ETL. It should be cheap and fast to ship. Avoid CloudKit-only sync, because it blocks Android.
+- **Backend (decided): read-only reference plus a relay.** Catalogue, prices and index packs are static files behind a CDN, refreshed by a scheduled ETL job; the only stateful pieces are the swap relay and opt-in profile links. There is no user database, so there is no auth-and-storage platform to choose, no row-level security to get wrong, and the cost does not scale with users (§6.5). Backup is the user's own iCloud Drive, which sidesteps the Android problem that CloudKit *sync* would have created — backup is per-platform by nature, sync is not.
 - **Built so far (`pipeline/`):** catalog build + cross-check, image fetch + visual index, the binder-page recognition prototype with an evaluation harness, and a reference implementation of the collection and trading rules. The rules come with shared JSON test vectors (`spec/vectors/`) that the Swift app must also pass.
-- **Offline-first:** the collection lives on the device. Recognition, matching and peer-to-peer swap all work with no signal. Sync happens when online.
+- **Local-first, not merely offline-first:** the device holds the collection and is the only place it exists. Recognition, matching and peer-to-peer swap need no signal — which matters because card shows and game stores are where this is used and where reception is worst. Nothing syncs, because there is nothing on the other end.
 
 ---
 
@@ -500,13 +522,28 @@ for_them = my.tradeables    ∩ their.wants
 ## 11. Privacy, Safety & Compliance
 
 - **Minimum data shared in a swap:** a display name plus for-trade and want lists. No location, contacts or full collection.
-- **Kids are supported** (decided). This makes COPPA (US) and similar laws a v1 requirement, not an add-on:
-  - **Age gate at signup** (neutral date-of-birth entry). Under-13 accounts require **verifiable parental consent** and are created and managed from a parent account.
-  - **Child accounts:** no public profile link or web preview, no free-text display name (pick from generated names such as "BlueCharizard42"), no chat, and no remote trades. Swaps happen only in person, by QR or nearby discovery.
-  - **Parent controls:** see the child's collection and trade history, and optionally require parent approval before a trade is recorded.
-  - **No third-party ads or tracking analytics** in the app at all. This keeps us eligible for the App Store Kids category rules **[VERIFY]** whether we list there or in Reference/Entertainment with a 4+ rating.
-  - **Data minimization:** no precise location, contacts or photos leaving the device for child accounts, including no opt-in model training (§5.6).
-  - **[VERIFY]** COPPA and GDPR-K compliance with counsel before launch.
+- **Kids are supported** (decided) — and local-first (§6.5) removes most of what
+  that would otherwise cost. COPPA and GDPR-K obligations attach to *collecting
+  and holding* a child's personal information. We hold none: the collection is
+  on the device, Premium arrives through Family Sharing, and trades happen in
+  person. There is no child account to create, consent to, or delete.
+  - **No child account, no age gate at signup**, because there is no signup. A
+    device either has the entitlement or it does not.
+  - **Child devices:** no public profile link or web preview, no free-text
+    display name (pick from generated names such as "BlueCharizard42"), no
+    chat, no remote trades. Swaps are in person, by QR or nearby discovery.
+  - **Parent controls:** the parent's device can view the child's collection and
+    trade history over the local link, and optionally require approval before a
+    trade is recorded. Parent-side, not server-side.
+  - **No third-party ads or tracking analytics.** **Decided: do not list in the
+    App Store Kids Category** for v1 — supporting children through Family
+    Sharing does not require it, and listing bans third-party analytics
+    outright, which is exactly what is needed to diagnose recognition failures
+    in the field (§6.4). A 9+ or 12+ rating in the normal category.
+  - **Data minimisation:** no precise location, contacts or photographs leave a
+    child's device, including no opt-in model training (§5.6).
+  - **[VERIFY]** with counsel that holding no data is sufficient, and confirm
+    the relay's handling if a child device ever touches it (it should not).
 - **Photos** stay on the device unless the user opts in to contribute training data.
 - **IP / trademarks:** "Pokémon" and card images belong to Nintendo, Creatures and GAME FREAK (via The Pokémon Company). **[VERIFY]** App Store naming and screenshot rules, the image licensing terms of the data provider, and a "not affiliated" disclaimer. Keep "Binder Swap" game-neutral, which is also good for multi-game support.
 - **App Store guidelines:** no in-app real-money trading in v1 avoids most payment and marketplace review issues.
@@ -537,7 +574,7 @@ for_them = my.tradeables    ∩ their.wants
 - Set tracker and automatic set-gap wish list
 - Values (single source, daily cache)
 - Swap via QR + nearby (Multipeer), match screen, value balance, record trade
-- Accounts (parent/child) + backup sync; Free / Premium / Lifetime plans (StoreKit 2)
+- Premium entitlement via StoreKit 2 (no account needed); backup to the user's own iCloud Drive (§6.5)
 
 ### Phase 2
 - Permanent profile QR (adult accounts only) + web preview, trade history, proposal/counter flow polish
@@ -561,15 +598,26 @@ for_them = my.tradeables    ∩ their.wants
 ### Decided (round 2)
 - **Tradeable = binder type:** Set / Trade / Collect binders, with per-card **Keep** in Trade binders (§4.1). Duplicates aren't special.
 - **Many binders per user**, limited by plan.
-- **Monetization:** free (limited) + subscription + one-time lifetime purchase (§6.1).
-- **Recording trades:** included for everyone. Stored trade history is premium.
+- **Monetization:** free (200 cards, no values, no trading) + one subscription at $9.99/mo or $79.99/yr (§6.2).
+- **Trading is the paid product:** matching, the assisted swap and trade history are Premium. A free user keeps full edit rights on their own local collection and can adjust it by hand after a physical trade (§6.1).
 - **Data budget:** $0 for now.
 
 ### Still open
-1. **Plan numbers:** binder limits, scan limits and prices in §6.1.
-2. **Accounts:** the free tier could work without an account (on-device only) for adults. Kids always need a parent account. OK?
-3. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use, and do we own a domain?
-4. **Cross-language wishes:** should a wish ever accept "any language"?
+1. ~~**Plan numbers**~~ — **settled** (§6.2): $9.99/mo or $79.99/yr, no lifetime,
+   free is 200 cards with unlimited binders, no values and no trading.
+2. ~~**Accounts**~~ — **settled** (§6.5): no account for the free tier or for
+   local use at all, and children need none either — a child's device inherits
+   Premium through Family Sharing.
+3. ~~**Kids Category**~~ — **settled** (§6.4, §11): do not list there in v1.
+4. **[DECISION] Does "200 cards" count distinct cards or physical copies?**
+   Recommendation: distinct. A trade binder is mostly duplicates, so counting
+   copies makes the limit bite hardest on the core use case (§6.2).
+5. **[DECISION] Manual export on the free tier?** Backup is Premium as decided.
+   Manual export costs nothing to offer and defuses "the app lost my
+   collection", the review that damages a collection app most (§6.5).
+6. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use,
+   and do we own a domain?
+7. **Cross-language wishes:** should a wish ever accept "any language"?
 
 ---
 
