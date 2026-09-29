@@ -171,7 +171,7 @@ Every user confirmation or correction is a labeled example. Store these locally.
 - **Binders:** create, rename, reorder, and set layout and **type** (Set / Trade / Collect, §4.1). Page view mirrors the physical binder.
 - **Set tracker:** progress per set (e.g. `142 / 198`, with a master-set count optional), plus a list of missing cards.
 - **Manual add:** search by name, number, or set, for single cards or when there's no binder.
-- **Wish list:** manual items, set-gap items and set-goal items, each marked **Need** or **Want**. Can be filtered and sorted by value.
+- **Wish list:** manual items, set-gap items and set-goal items, each marked **Need** or **Want**. Can be filtered and sorted by value. See §6.7 for how gaps are derived and exported.
 - **Keep flags:** per card in Trade binders (§4.1).
 - **Backup & sync:** so an inventory is never lost with a phone. See §9.
 
@@ -214,6 +214,7 @@ revisiting, and only to fund early development.
 | Scan a page, catalogue it | ✅ | ✅ |
 | Wish list (manual + set gaps) | ✅ | ✅ |
 | **Card values** | ❌ **not shown** | ✅ current |
+| **Set tracker: which cards are missing** | ❌ (see the count only) | ✅ + export |
 | **Matching & trading** | ❌ (see the count only) | ✅ |
 | **Backup & restore** | ❌ | ✅ |
 | New-set catalogue updates | ❌ frozen at install | ✅ |
@@ -235,7 +236,14 @@ price in a trading app: someone trades on it, discovers it was stale, and
 blames us. Values are either **current or not shown**. This also means the free
 tier carries no price-serving cost at all.
 
-**Why the free tier sees the match count but cannot act on it.** "3 collectors
+**Scanning is free, the answers are not.** Nobody believes a card scanner works
+until it has read their own cards, so gating the scan asks for payment before
+proof — and it would leave the free tier as a manual data-entry app, which
+means no inventory is ever built, no count ever appears, and no prompt ever
+fires. The 200-card cap already bounds scanning. What Premium buys is the
+*specifics*: which cards are missing, who has them, and what they are worth.
+
+**Why the free tier sees the count but cannot act on it.** "3 collectors
 near you have 7 cards you need" is the strongest conversion prompt in the
 product, and unlike a storage wall it fires again every time the collection or
 the neighbourhood changes. A volume cap converts once; this recurs.
@@ -399,6 +407,58 @@ intake flow should accept many pages back-to-back and present one review queue
 at the end, rather than interrupting after each page.
 
 ---
+
+## 6.7 The missing-cards list
+
+**Order does not matter (verified).** `set_gaps` is a set difference over the
+whole binder -- every card of the set not in this binder is a Need -- not a
+per-pocket positional guess. A page of Evolving Skies in random order with no
+empty pockets produces the same missing list as the same cards in number order
+with the gaps left blank. Adding a page shrinks the list automatically, and a
+card sitting in another binder comes back as `owned_elsewhere` rather than
+being hidden or silently satisfied.
+
+**But order changes when the list can be trusted, and the UI must say so.**
+
+| | One page tells you | Requires |
+|---|---|---|
+| **In number order** | exactly which cards are missing from that page's range | `page_index`, which the app infers from the cards it reads |
+| **Any order** | nothing on its own — an unscanned page looks identical to a missing card | the whole binder scanned |
+
+So an unordered Set binder needs either a **"binder fully scanned"** marker or
+the list framed as *"missing from the pages you've scanned."* Scanning one page
+of a twenty-page unordered binder and being told you are missing 180 cards is
+technically true and useless.
+
+**The prompt that turns a scan into a set binder.** When a page comes back with
+a confident `dominant_set` (already detected with no hint), offer:
+
+> *"This looks like Evolving Skies — track what's missing?"*
+
+One tap converts the binder to type Set and starts the gap list. If the numbers
+also run in sequence, the app sets `page_index` too and the list is immediately
+trustworthy for that range. This prompt fires at the moment the feature is most
+persuasive, which is also where the paywall sits (§6.2).
+
+### 6.7.1 Export (Premium)
+
+The missing list is not only for in-app matching. A collector's list is
+something they send to a friend, post in a Discord, or take shopping. Export is
+Premium, as with everything else about the list (§6.2).
+
+| Format | For |
+|---|---|
+| **Plain text** | Pasting into Messages, Discord or a forum. `Evolving Skies — need 12: 45, 102, 188/203 …` |
+| **CSV** | Spreadsheets, and the collectors who keep one anyway |
+| **TCGplayer Mass Entry** | Paste straight into a cart and price or buy the whole list at once. **[VERIFY]** the current field format |
+| **Cardmarket want list** | The European equivalent, and the only one that works for Japanese cards (§8.3) |
+| **Shareable image** | A card-grid picture for social, which doubles as marketing |
+| **Deep link / QR** | A friend with the app opens it and is matched against their own collection immediately — this one feeds the network rather than leaving it |
+
+The deep link is the valuable one. Text and CSV leave the product; a shared
+wish list that a friend can open *inside* the app turns one member's export
+into another person's install and an immediate match.
+
 
 ## 7. Feature: Meet & Match (the swap)
 
@@ -614,12 +674,10 @@ for_them = my.tradeables    ∩ their.wants
 3. ~~**Kids Category**~~ — **settled** (§6.4, §11): do not list there in v1.
 4. ~~**Distinct cards or copies**~~ — **settled** (§6.2): copies count.
 5. ~~**Manual export on free**~~ — **settled** (§6.5): no, Premium only.
-6. **[DECISION] Is scanning free?** Recommendation: **yes, scan free, specifics
-   paid** (§6.2). Gating the scan means asking someone to pay before they have
-   seen it read a single one of their own cards, and it leaves the free tier as
-   a manual data-entry app nobody will use — so no inventory is ever built and
-   no conversion prompt ever fires. The gate belongs on the set-completion list
-   instead: free sees *"12 cards missing from this set"*, Premium sees which.
+6. ~~**Is scanning free**~~ — **settled** (§6.2, §6.7): yes. Scan and catalogue
+   are free, and the app still offers *"this looks like Evolving Skies — track
+   what's missing?"*. What Premium buys is seeing **which** cards are missing,
+   the list itself, and exporting it.
 7. **Domain/branding:** is "Binder Swap" clear for App Store and trademark use,
    and do we own a domain?
 8. **Cross-language wishes:** should a wish ever accept "any language"?
