@@ -13,7 +13,6 @@ Last updated: 2026-09-29
 | 2 | **Real binder photos not in the repo.** Now the top blocker: everything else needed for the accuracy test is in place. | Real accuracy numbers; the ✅ auto-confirm threshold | Owner | 🔴 | Upload ~30–50 pages (Set + Trade, EN + JA, 9- and 4-pocket, some glare) in chat or to `photos/`. Claude drafts `labels.json` from the catalog; owner confirms. The evaluation can run in GitHub Actions next to the index. |
 | 3 | **Xcode not installed.** A Mac is now in play (Apple silicon, macOS 15, Swift 6.1.2), but only the Command Line Tools: no iOS SDK, no simulators, no `xcodebuild`. Swift compiles for macOS only. | The iOS app itself; building the app's Vision-based visual index | Owner | 🟡 | Install Xcode from the App Store (free, ~10 GB), then `sudo xcode-select -s /Applications/Xcode.app`. |
 | 3b | **No Apple Developer account.** | Running on a real iPhone, TestFlight, App Store | Owner | 🔴 | Enroll ($99/yr). |
-| 4 | **Price feed not built**; its source `api.tcgdex.net` is blocked in the session. | Trade values on the match screen | Claude | 🔴 | After #1: build the daily price cache (can also run in GitHub Actions). Doesn't block recognition. |
 | 5 | **Japanese catalog gaps**: 127 sets only; some incomplete (e.g. `ja/SV4a` missing 40 of 190); ~3,600 cards without rarity; **5,931 of 13,448 JA cards (44%) have no image on TCGdex** (EN: 1,567 of 21,290, 7%). Cards without an image can only be matched by their printed number. Whole vintage JA sets have no images at all (e.g. `ja/neo1`, `ja/neo4`, `ja/PMCG1`, `ja/PMCG5`, `ja/PMCG6`, `ja/PCG4`, `ja/E2`, `ja/E4`), and so does a new one, `ja/M1L`. | A trustworthy JA catalog | Claude + owner | 🔴 | Decide: contribute fixes upstream to TCGdex, fill by hand, or Scrydex (paid) later. See `pipeline/reports/catalog-build.md`. |
 | 6 | **Open product decisions**: plan numbers (binder/scan limits, prices); whether free adult users need an account; domain and branding; whether a wish can accept any language. | Paywall, onboarding | Owner | 🔴 | Decide; Claude updates `SPEC.md` §6.1 / §14. |
 
@@ -21,6 +20,7 @@ Last updated: 2026-09-29
 
 | Item | Owner | Status |
 |---|---|---|
+| Price accuracy gate (SPEC 8.3): median error < 10% vs TCGplayer public prices, ~200 EN + ~100 JA. Coverage is measured; **accuracy is not**, and JA cannot be checked against TCGplayer at all since it lists no Japanese cards | Claude | 🔴 |
 | Legal review: card-image use and the "not affiliated" disclaimer | Owner (counsel) | 🔴 |
 | Legal review: COPPA / GDPR-K setup for kid accounts | Owner (counsel) | 🔴 |
 
@@ -31,6 +31,7 @@ Last updated: 2026-09-29
 | 1 | Real card images not downloaded | 2026-09-29 | GitHub Actions [run](https://github.com/RaphaelLikesCoding/binder_swap/actions/runs/36565265806): 27,241 images downloaded and indexed (EN 19,724 · JA 7,517). The index and manifest are in the run's `visual-index` artifact (47 MB, kept 30 days) and the images are in the Actions cache for fast reruns. |
 | — | No `main` branch | 2026-09-29 | Created from `dab21fc` and pushed |
 | — | `main` was not the default branch, and was 4 commits behind | 2026-09-29 | Default switched to `main`; `main` fast-forwarded `dab21fc` → `f538a18` and pushed. Repo renamed `clip_studio` → `binder_swap`. |
+| 4 | Price feed not built | 2026-09-29 | `binderswap.prices.fetch` caches TCGdex's TCGplayer (USD) and Cardmarket (EUR) figures into `build/prices/prices.sqlite`, resumable on age so a daily job refetches only what went stale. **SPEC 8.3 [VERIFY] answered** (n=440 sampled cards): EN TCGplayer 89.5% / Cardmarket 93.6%; JA TCGplayer **0.0%** / Cardmarket **80.0%**. TCGplayer carries no Japanese cards, so **EUR is the only currency that can price both catalogues** — that settles the currency half of #6 on coverage rather than preference. JA at 80% is far better than the spec's "likely sparse", so **Scrydex (~$29/mo) is not needed** and the $0 budget holds. |
 
 ## Log
 
