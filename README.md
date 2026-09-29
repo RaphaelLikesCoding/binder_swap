@@ -41,6 +41,9 @@ python -m binderswap.recognition.eval --pages photos/labels.json --out report.md
 # Daily price cache (TCGplayer USD + Cardmarket EUR, via TCGdex)
 python -m binderswap.prices.fetch --langs en,ja
 
+# Binder pages built from real card art, with exact ground truth
+python -m binderswap.realpages --pages 40 --langs en --out build/realpages
+
 # Does the embedder still discriminate against the whole catalog, not 80 cards?
 python -m binderswap.recognition.scalecheck --index build/index/en.npz --n 400
 
@@ -55,6 +58,8 @@ python -m binderswap.recognition.ocrcheck 200 0.35
 | Embedder (`classic-v1`) top-4, full 19,724-card pool | 1.000 clean, 0.98 moderate, 0.86 harsh |
 | Number reading, exact number **and** total | 0.767 clean, 0.530 mild, 0.330 heavy |
 | Recognising a 9-card page | 1.22s |
+| Real-art pages: layout / top-1 / top-4 | 1.000 / 0.977 / 0.994 (n=309 cards) |
+| Auto-confirm at threshold 0.7 | precision 1.000, coverage 0.951 (our degradation model, a ceiling) |
 | Price coverage, EN / JA | 0.964 / 0.800 (Cardmarket; TCGplayer has no JA) |
 
 The embedder is not the bottleneck; segmentation and number reading are. See
