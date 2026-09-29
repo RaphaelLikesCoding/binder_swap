@@ -7,8 +7,10 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-COMMON_LAYOUTS = [(3, 3), (2, 2), (3, 4), (4, 3), (4, 4), (2, 3), (1, 2)]  # rows, cols
+COMMON_LAYOUTS = [(3, 3), (2, 2), (3, 4), (4, 3), (4, 4), (2, 3), (3, 2), (2, 4), (4, 2),
+                  (1, 2), (2, 1), (1, 3), (3, 1), (1, 1)]  # rows, cols
 PAGE_WIDTH = 1500  # rectified page width in px
+CARD_ASPECT = 63 / 88  # a real card, 63 x 88 mm
 
 
 def order_corners(pts: np.ndarray) -> np.ndarray:
@@ -112,6 +114,122 @@ def _gutter_score(profile: np.ndarray, n: int) -> float:
     return float(np.median(cells) - np.mean(dips)) / (float(np.median(cells)) + 1e-6)
 
 
+def _best_offset(prof: np.ndarray, n: int, cell: float) -> tuple[int, float]:
+    """Best start offset for ``n`` cells of size ``cell`` on a cardness profile.
+
+    Vectorised over start offsets: the grid search runs once per candidate page
+    outline per layout, so a Python loop here costs seconds per photo.
+    """
+    L = len(prof)
+    span = int(round(n * cell))
+    if span < n or span > L:
+        return 0, -np.inf
+    c = np.concatenate([[0.0], np.cumsum(prof.astype(np.float64))])
+    starts = np.arange(0, L - span + 1, max(1, L // 200))
+    if not len(starts):
+        return 0, -np.inf
+    k = np.arange(n)
+    edge = starts[:, None] + k[None, :] * cell                     # (S, n) cell left edges
+    a = np.clip((edge + 0.25 * cell).astype(int), 0, L)
+    b = np.clip((edge + 0.75 * cell).astype(int), 0, L)
+    b = np.maximum(b, a + 1)
+    inner = np.median((c[b] - c[a]) / (b - a), axis=1)             # (S,)
+    if n == 1:
+        # A single cell has no interior boundary, so "brighter than the gutters"
+        # is meaningless and raw brightness would beat every real grid. Score it
+        # against what lies outside it instead, which keeps it comparable.
+        total = c[L]
+        insid = c[np.clip(starts + span, 0, L)] - c[starts]
+        outside_n = np.maximum(L - span, 1)
+        gut = (total - insid) / outside_n
+    else:
+        half = max(1, int(0.06 * cell))
+        g = starts[:, None] + np.arange(1, n)[None, :] * cell      # (S, n-1) interior boundaries
+        ga = np.clip((g - half).astype(int), 0, L)
+        gb = np.clip((g + half).astype(int), 0, L)
+        gb = np.maximum(gb, ga + 1)
+        gut = ((c[gb] - c[ga]) / (gb - ga)).mean(axis=1)
+    score = (inner - gut) * inner
+    i = int(np.argmax(score))
+    return int(starts[i]), float(score[i])
+
+
+def _score_at(prof: np.ndarray, n: int, cell: float, start: int) -> float:
+    """Score one specific grid placement, on the same terms as _best_offset."""
+    L = len(prof)
+    span = int(round(n * cell))
+    if span < n or start < 0 or start + span > L:
+        return -np.inf
+    c = np.concatenate([[0.0], np.cumsum(prof.astype(np.float64))])
+    def mean(a, b):
+        a = max(0, min(L, int(a))); b = max(a + 1, min(L, int(b)))
+        return (c[b] - c[a]) / (b - a)
+    inner = float(np.median([mean(start + k * cell + 0.25 * cell, start + k * cell + 0.75 * cell)
+                             for k in range(n)]))
+    if n == 1:
+        outside = (c[L] - (c[min(L, start + span)] - c[start])) / max(L - span, 1)
+        gut = outside
+    else:
+        half = max(1, int(0.06 * cell))
+        gut = float(np.mean([mean(start + k * cell - half, start + k * cell + half) for k in range(1, n)]))
+    return (inner - gut) * inner
+
+
+def fit_grid(page: np.ndarray, layout: tuple[int, int],
+             card_map: np.ndarray | None = None) -> tuple[int, int, float, float, float]:
+    """Place a ``layout`` grid on the page: (x0, y0, cell_w, cell_h, score).
+
+    ``content_bounds`` assumes the pocket area is everything that looks
+    card-like, which a title bar, a watermark, a caption or a colourful table
+    defeats -- the grid is then stretched over the wrong region and every crop
+    is displaced. This searches for the placement instead of assuming it.
+
+    Width and height are searched *together*, with the cell held near a card's
+    shape: fitting the two axes independently lets one of them lock onto a
+    different period entirely (a title bar plus two card rows reads as three
+    cells), and an aspect penalty applied afterwards cannot undo a bad fit.
+
+    Scores the grid, not the cards, so puzzle cards whose art runs continuously
+    across two or four pockets with no edge between them fit exactly as well.
+    """
+    cm = cardness(page) if card_map is None else card_map
+    if cm.size == 0:
+        return 0, 0, 0.0, 0.0, 0.0
+    rows, cols = layout
+    H, W = cm.shape
+    col_prof, row_prof = cm.mean(axis=0), cm.mean(axis=1)
+    best = (0, 0, 0.0, 0.0, -np.inf)
+
+    def consider(x0, y0, cw, ch):
+        nonlocal best
+        if cw <= 0 or ch <= 0 or cols * cw > W or rows * ch > H:
+            return
+        sx = _score_at(col_prof, cols, cw, int(x0))
+        sy = _score_at(row_prof, rows, ch, int(y0))
+        if sx + sy > best[4]:
+            best = (int(x0), int(y0), float(cw), float(ch), float(sx + sy))
+
+    # The old behaviour -- stretch the grid across everything that looks
+    # card-like -- is right whenever the page really does fill the frame, so
+    # keep it as a candidate and let the same score choose.
+    bx0, by0, bx1, by1 = content_bounds(page, cm)
+    consider(bx0, by0, (bx1 - bx0) / cols, (by1 - by0) / rows)
+
+    lo, hi = max(8, int(0.25 * W / cols)), int(W / cols)
+    for cw in range(lo, hi + 1, max(1, (hi - lo) // 40 or 1)):
+        # A pocket is a little larger than the card it holds, and not always
+        # by the same margin, so allow a band around the printed 63:88.
+        for ratio in (0.68, 0.72, 0.76, 0.80):
+            ch = cw / ratio
+            if rows * ch > H:
+                continue
+            x0, sx = _best_offset(col_prof, cols, cw)
+            y0, sy = _best_offset(row_prof, rows, ch)
+            if sx + sy > best[4]:
+                best = (x0, y0, float(cw), float(ch), float(sx + sy))
+    return best
+
+
 def content_bounds(page: np.ndarray, card_map: np.ndarray | None = None) -> tuple[int, int, int, int]:
     """Bounding box (x0, y0, x1, y1) of the pocket area, trimming empty page margins."""
     cm = cardness(page) if card_map is None else card_map
@@ -126,20 +244,34 @@ def content_bounds(page: np.ndarray, card_map: np.ndarray | None = None) -> tupl
     return x0, y0, x1, y1
 
 
+def _aspect_fit(cell_aspect: float) -> float:
+    """How card-shaped a grid cell is, as a 0-1 weight on the gutter score.
+
+    Gutter contrast alone cannot choose between page outlines: a quad that is
+    skewed or clipped still produces crisp dips, so a wrong rectification can
+    outscore the right one and every crop inherits the distortion. A correctly
+    rectified pocket grid has cells the shape of a card, so how close the cell
+    aspect lands to 63:88 is evidence about the *outline*, not just the layout.
+
+    This keys on the grid, not on per-card contours, so it still holds for
+    puzzle cards whose art runs continuously across two or four pockets.
+    """
+    return float(np.exp(-0.5 * ((cell_aspect - CARD_ASPECT) / 0.075) ** 2))
+
+
 def _layout_scores(page: np.ndarray, layouts) -> list[tuple[float, tuple[int, int]]]:
     cm = cardness(page)
-    x0, y0, x1, y1 = content_bounds(page, cm)
-    area = cm[y0:y1, x0:x1]
-    if area.size == 0:
+    if cm.size == 0:
         return []
-    col_prof, row_prof = area.mean(axis=0), area.mean(axis=1)
     out = []
     for rows, cols in layouts:
-        # Pockets hold upright cards: reject grids whose cells are far from card-shaped.
-        cell_aspect = ((x1 - x0) / cols) / max(1e-6, (y1 - y0) / rows)
-        if not 0.55 < cell_aspect < 0.95:
+        _, _, cw, ch, score = fit_grid(page, (rows, cols), cm)
+        if cw <= 0 or ch <= 0:
             continue
-        out.append((_gutter_score(col_prof, cols) + _gutter_score(row_prof, rows), (rows, cols)))
+        # Pockets hold upright cards: reject grids whose cells are far from card-shaped.
+        if not 0.55 < cw / ch < 0.95:
+            continue
+        out.append((score, (rows, cols)))
     return out
 
 
@@ -189,8 +321,10 @@ def slots_for(page: np.ndarray, layout: tuple[int, int]) -> list[Slot]:
     """Split the pocket area into a uniform grid and locate the card in each pocket."""
     rows, cols = layout
     cm = cardness(page)
-    x0, y0, x1, y1 = content_bounds(page, cm)
-    sw, sh = (x1 - x0) / cols, (y1 - y0) / rows
+    x0, y0, sw, sh, _ = fit_grid(page, layout, cm)
+    if sw <= 0 or sh <= 0:
+        bx0, by0, bx1, by1 = content_bounds(page, cm)
+        x0, y0, sw, sh = bx0, by0, (bx1 - bx0) / cols, (by1 - by0) / rows
     slots = []
     for i in range(rows * cols):
         r, c = divmod(i, cols)
