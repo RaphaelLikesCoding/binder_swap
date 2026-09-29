@@ -11,6 +11,7 @@ The product and technical spec is in [`SPEC.md`](SPEC.md).
 | [`SPEC.md`](SPEC.md) | Product and technical spec (decisions, open questions, roadmap) |
 | [`pipeline/`](pipeline/) | Python data pipeline: card catalog, card images, visual index, binder-page recognition prototype, evaluation, reference rules |
 | [`spec/vectors/`](spec/vectors/) | JSON test cases for the collection and trading rules. The Python reference and the iOS app both must pass them |
+| [`BLOCKERS.md`](BLOCKERS.md) | Blocker blotter: what is blocking next steps, owner, status |
 | [`pipeline/reports/`](pipeline/reports/) | Latest catalog build report and English cross-check report |
 | `.github/workflows/` | CI tests; weekly or manual catalog rebuild (plus optional image download and index build) |
 

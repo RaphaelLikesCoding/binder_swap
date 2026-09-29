@@ -44,8 +44,9 @@ CREATE TABLE IF NOT EXISTS images (
 );
 """
 
-# TCGdex serves {image_base}/{quality}.{ext}; png for the index (lossless),
-# webp for app display (small).
+# TCGdex serves {image_base}/{quality}.{ext} with ext png | webp | jpg.
+# Default: lossless png for high, small webp for low. high.webp is ~10x
+# smaller than png at the same resolution; use it where disk is limited (CI).
 FORMATS = {"high": "png", "low": "webp"}
 
 
@@ -76,8 +77,8 @@ class RateLimiter:
 
 
 def plan(catalog: Path, out: Path, quality: str, langs: list[str], sets: list[str] | None,
-         manifest: sqlite3.Connection, retry_errors: bool) -> list[Job]:
-    ext = FORMATS[quality]
+         manifest: sqlite3.Connection, retry_errors: bool, ext: str | None = None) -> list[Job]:
+    ext = ext or FORMATS[quality]
     done = {row[0]: row[1] for row in manifest.execute(
         "SELECT card_id, status FROM images WHERE quality=?", (quality,))}
     con = sqlite3.connect(catalog)
@@ -130,11 +131,11 @@ def fetch_one(job: Job, limiter: RateLimiter, timeout: float, retries: int) -> d
 def run(catalog: Path, out: Path, quality: str = "high", langs: list[str] | None = None,
         sets: list[str] | None = None, workers: int = 8, rate: float = 20.0, timeout: float = 30.0,
         retries: int = 3, retry_errors: bool = False, limit: int | None = None,
-        progress: bool = True) -> dict[str, int]:
+        progress: bool = True, ext: str | None = None) -> dict[str, int]:
     out.mkdir(parents=True, exist_ok=True)
     manifest = sqlite3.connect(out / "manifest.sqlite")
     manifest.executescript(MANIFEST_SCHEMA)
-    jobs = plan(catalog, out, quality, langs or ["en", "ja"], sets, manifest, retry_errors)
+    jobs = plan(catalog, out, quality, langs or ["en", "ja"], sets, manifest, retry_errors, ext)
     if limit is not None:
         jobs = jobs[:limit]
     limiter = RateLimiter(rate)
@@ -162,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--catalog", type=Path, default=Path("build/catalog/catalog.sqlite"))
     ap.add_argument("--out", type=Path, default=Path("build/images"))
     ap.add_argument("--quality", choices=sorted(FORMATS), default="high")
+    ap.add_argument("--ext", choices=["png", "webp", "jpg"], help="image format (default: png for high, webp for low)")
     ap.add_argument("--langs", default="en,ja")
     ap.add_argument("--sets", help="comma-separated catalog set ids, e.g. en/sv03,ja/SV3")
     ap.add_argument("--workers", type=int, default=8)
@@ -171,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     counts = run(args.catalog, args.out, args.quality, args.langs.split(","),
                  args.sets.split(",") if args.sets else None, args.workers, args.rate,
-                 retry_errors=args.retry_errors, limit=args.limit)
+                 retry_errors=args.retry_errors, limit=args.limit, ext=args.ext)
     print(f"done: {counts}", file=sys.stderr)
     return 1 if counts["error"] else 0
 

@@ -34,9 +34,9 @@ jobs:
         run: python -m binderswap.catalog.build --langs "${{ inputs.langs || 'en,ja' }}"
       - name: Cross-check English
         run: python -m binderswap.catalog.crosscheck
-      - name: Download images (high quality, for the index)
+      - name: Download images (high resolution webp, for the index)
         if: ${{ inputs.images }}
-        run: python -m binderswap.images.fetch --langs "${{ inputs.langs || 'en,ja' }}" --rate 10
+        run: python -m binderswap.images.fetch --langs "${{ inputs.langs || 'en,ja' }}" --ext webp --rate 10 --retry-errors
       - name: Build visual index
         if: ${{ inputs.images }}
         run: python -m binderswap.images.index --langs "${{ inputs.langs || 'en,ja' }}"
@@ -48,10 +48,23 @@ jobs:
             pipeline/build/catalog/REPORT.md
             pipeline/build/catalog/CROSSCHECK.md
             pipeline/build/catalog/packs/
+      - name: Image summary
+        if: ${{ always() && inputs.images }}
+        run: |
+          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import sqlite3
+          con = sqlite3.connect("build/images/manifest.sqlite")
+          print("| lang | status | images |\n|---|---|---|")
+          for lang, status, n in con.execute(
+                  "SELECT substr(card_id,1,2), status, count(*) FROM images GROUP BY 1,2 ORDER BY 1,2"):
+              print(f"| {lang} | {status} | {n} |")
+          PY
+          du -sh build/images
       - uses: actions/upload-artifact@v4
         if: ${{ inputs.images }}
         with:
           name: visual-index
+          retention-days: 30
           path: |
             pipeline/build/index/
             pipeline/build/images/manifest.sqlite
