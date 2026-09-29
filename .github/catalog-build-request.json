@@ -1,6 +1,6 @@
 {
   "images": true,
   "langs": "en,ja",
-  "requested": "2026-09-29",
-  "reason": "Blocker #1: download real card images and build the visual index"
+  "requested": "2026-09-29T12:05Z",
+  "reason": "Blocker #1, attempt 2: attempt 1 downloaded 27,233 images but exited 1 on 8 transient errors, so the index was never built"
 }

@@ -51,37 +51,48 @@ jobs:
         run: python -m binderswap.catalog.build --langs "${{ steps.opts.outputs.langs }}"
       - name: Cross-check English
         run: python -m binderswap.catalog.crosscheck
+      # Images persist between runs, so a rerun only fetches new or failed ones.
+      - name: Restore image cache
+        if: ${{ steps.opts.outputs.images == 'true' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: pipeline/build/images
+          key: card-images-${{ github.run_id }}
+          restore-keys: card-images-
       - name: Download images (high resolution webp, for the index)
+        id: fetch
         if: ${{ steps.opts.outputs.images == 'true' }}
         run: python -m binderswap.images.fetch --langs "${{ steps.opts.outputs.langs }}" --ext webp --rate 10 --retry-errors
+      - name: Save image cache
+        if: ${{ always() && steps.opts.outputs.images == 'true' && steps.fetch.outcome != 'skipped' }}
+        uses: actions/cache/save@v4
+        with:
+          path: pipeline/build/images
+          key: card-images-${{ github.run_id }}
+      - name: Image summary
+        if: ${{ always() && steps.opts.outputs.images == 'true' && steps.fetch.outcome != 'skipped' }}
+        run: |
+          python -m binderswap.images.summary | tee -a "$GITHUB_STEP_SUMMARY"
+          du -sh build/images
       - name: Build visual index
         if: ${{ steps.opts.outputs.images == 'true' }}
         run: python -m binderswap.images.index --langs "${{ steps.opts.outputs.langs }}"
       - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
           name: catalog
+          if-no-files-found: ignore
           path: |
             pipeline/build/catalog/catalog.sqlite
             pipeline/build/catalog/REPORT.md
             pipeline/build/catalog/CROSSCHECK.md
             pipeline/build/catalog/packs/
-      - name: Image summary
-        if: ${{ always() && steps.opts.outputs.images == 'true' }}
-        run: |
-          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
-          import sqlite3
-          con = sqlite3.connect("build/images/manifest.sqlite")
-          print("| lang | status | images |\n|---|---|---|")
-          for lang, status, n in con.execute(
-                  "SELECT substr(card_id,1,2), status, count(*) FROM images GROUP BY 1,2 ORDER BY 1,2"):
-              print(f"| {lang} | {status} | {n} |")
-          PY
-          du -sh build/images
       - uses: actions/upload-artifact@v4
-        if: ${{ steps.opts.outputs.images == 'true' }}
+        if: ${{ always() && steps.opts.outputs.images == 'true' }}
         with:
           name: visual-index
           retention-days: 30
+          if-no-files-found: ignore
           path: |
             pipeline/build/index/
             pipeline/build/images/manifest.sqlite

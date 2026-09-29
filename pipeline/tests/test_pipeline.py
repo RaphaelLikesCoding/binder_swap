@@ -113,3 +113,24 @@ def test_result_is_json_serializable(world):
     photo = cv2.imread(str(out / "pages" / "four_pocket.jpg"))
     result, _, _ = rec.recognize(photo, (2, 2))
     assert json.loads(json.dumps(result.to_dict()))["layout"] == [2, 2]
+
+
+def test_image_summary_reports_missing_by_set(world):
+    from binderswap.images.summary import render
+    out, _ = world
+    md = render(out / "images", out / "catalog.sqlite")
+    assert "| en | 79 | 1 | 0 |" in md
+    assert "| `en/swsh9` | Brilliant Stars | 1 | 20 |" in md
+
+
+def test_fetch_exit_code_tolerates_small_error_rate(world, tmp_path, monkeypatch):
+    out, _ = world
+    calls = {}
+
+    def fake_run(*a, **k):
+        return calls["counts"]
+    monkeypatch.setattr(fetch, "run", fake_run)
+    calls["counts"] = {"ok": 995, "missing": 100, "error": 5}
+    assert fetch.main(["--catalog", str(out / "catalog.sqlite"), "--out", str(tmp_path)]) == 0
+    calls["counts"] = {"ok": 900, "missing": 0, "error": 100}
+    assert fetch.main(["--catalog", str(out / "catalog.sqlite"), "--out", str(tmp_path)]) == 1

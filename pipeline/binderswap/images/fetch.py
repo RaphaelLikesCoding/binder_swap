@@ -170,12 +170,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rate", type=float, default=20.0, help="max requests per second")
     ap.add_argument("--retry-errors", action="store_true")
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--max-error-rate", type=float, default=0.01,
+                    help="exit non-zero only if more than this share of attempted downloads errored "
+                         "(404s are 'missing', not errors); rerun with --retry-errors to retry them")
     args = ap.parse_args(argv)
     counts = run(args.catalog, args.out, args.quality, args.langs.split(","),
                  args.sets.split(",") if args.sets else None, args.workers, args.rate,
                  retry_errors=args.retry_errors, limit=args.limit, ext=args.ext)
-    print(f"done: {counts}", file=sys.stderr)
-    return 1 if counts["error"] else 0
+    attempted = sum(counts.values())
+    rate = counts["error"] / attempted if attempted else 0.0
+    print(f"done: {counts} (error rate {rate:.3%})", file=sys.stderr)
+    return 1 if rate > args.max_error_rate else 0
 
 
 if __name__ == "__main__":
