@@ -59,6 +59,13 @@ def parse(text: str) -> NumberRead:
     return NumberRead(text, m.group("prefix") or "", int(m.group("num")), int(m.group("total")))
 
 
+# Page-segmentation modes to try, in order. PSM 7 ("one text line") is absent
+# deliberately: measured against printed numbers on real cards it scored 0.007
+# on clean scans and 0.000 degraded, and dropping it lost none of the 200 cards
+# the full set read correctly. It was a third of the Tesseract calls.
+PSMS = (11, 6)
+
+
 def read_number(card_bgr: np.ndarray) -> NumberRead:
     if not available():
         return NumberRead("")
@@ -73,7 +80,7 @@ def read_number(card_bgr: np.ndarray) -> NumberRead:
     ]
     texts, reads = [], []
     for img in variants:
-        for psm in (11, 6, 7):
+        for psm in PSMS:
             text = _tesseract(img, psm)
             texts.append(text)
             read = parse(text)
