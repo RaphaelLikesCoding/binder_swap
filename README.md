@@ -9,7 +9,7 @@ The product and technical spec is in [`SPEC.md`](SPEC.md).
 | Path | What it is |
 |---|---|
 | [`SPEC.md`](SPEC.md) | Product and technical spec (decisions, open questions, roadmap) |
-| [`pipeline/`](pipeline/) | Python data pipeline: card catalog, card images, visual index, binder-page recognition prototype, evaluation, reference rules |
+| [`pipeline/`](pipeline/) | Python data pipeline: card catalog, card images, visual index, binder-page recognition prototype, price cache, evaluation, reference rules |
 | [`spec/vectors/`](spec/vectors/) | JSON test cases for the collection and trading rules. The Python reference and the iOS app both must pass them |
 | [`BLOCKERS.md`](BLOCKERS.md) | Blocker blotter: what is blocking next steps, owner, status |
 | [`pipeline/reports/`](pipeline/reports/) | Latest catalog build report and English cross-check report |
@@ -37,6 +37,27 @@ python -m binderswap.recognition.cli IMG_0412.jpg --overlay out.jpg [--set en/sv
 
 # Measure accuracy on labelled photos
 python -m binderswap.recognition.eval --pages photos/labels.json --out report.md
+
+# Daily price cache (TCGplayer USD + Cardmarket EUR, via TCGdex)
+python -m binderswap.prices.fetch --langs en,ja
+
+# Does the embedder still discriminate against the whole catalog, not 80 cards?
+python -m binderswap.recognition.scalecheck --index build/index/en.npz --n 400
+
+# How well does the number reader actually read real cards?
+python -m binderswap.recognition.ocrcheck 200 0.35
 ```
+
+### What the measurements say today
+
+| | |
+|---|---|
+| Embedder (`classic-v1`) top-4, full 19,724-card pool | 1.000 clean, 0.98 moderate, 0.86 harsh |
+| Number reading, exact number **and** total | 0.767 clean, 0.530 mild, 0.330 heavy |
+| Recognising a 9-card page | 1.22s |
+| Price coverage, EN / JA | 0.964 / 0.800 (Cardmarket; TCGplayer has no JA) |
+
+The embedder is not the bottleneck; segmentation and number reading are. See
+[`BLOCKERS.md`](BLOCKERS.md) for what that implies and what is still open.
 
 See [`pipeline/README.md`](pipeline/README.md) for details, including how to label your own binder photos.
