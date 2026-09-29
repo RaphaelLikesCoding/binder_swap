@@ -313,9 +313,23 @@ proven.
 
 ## 6.5 Local-first: what the backend does and does not hold
 
-**Collections never leave the device.** The cloud serves reference data —
-catalogue, prices, index packs — and relays a trade when two people are not in
-the same room. It stores no binders, no wish lists and no trade history.
+**Collections never leave the device. Nothing is stored unless the user
+publishes it.** The cloud serves reference data — catalogue, prices, index
+packs — and relays a trade when two people are not in the same room.
+
+The precise promise, because "we store nothing" would be a lie the moment
+anyone shares a profile:
+
+| | Where it lives |
+|---|---|
+| Binders, collection, trade history | **Device only.** Never uploaded, not even to back up — backup goes to the user's own iCloud (below) |
+| Photographs of pages | Processed and discarded |
+| **For-trade and want lists** | Device only **until the user taps publish** (§7.3), and then only that snapshot, dated and expiring |
+| Catalogue, prices, index packs | Ours, read-only, identical for everyone |
+
+So the claim is not "we hold nothing" but **"we hold nothing you did not
+deliberately publish, and only the two lists you chose to show."** That is a
+promise that survives contact with the profile QR; the stronger one would not.
 
 This is not only a cost decision:
 
@@ -361,7 +375,8 @@ This is not only a cost decision:
 - **Rate limits** per device and per IP on relay, profile lookup and QR
   resolution, since those are the only paths that cost us money.
 - **A public profile QR is a permanent identifier**: revocable, regenerable,
-  and never issued to a child.
+  and never issued to a child. What it resolves to is a published snapshot
+  with an expiry, not a live view of anyone's collection (§7.3).
 - **Photographs are processed and discarded**, never retained unless the user
   opts in to contributing training data (§5.6), and never for a child.
 
@@ -487,7 +502,13 @@ Deliberately deferred, in rough order of when they earn their keep:
 
 ### 7.3 Exchange protocol (must survive Android later)
 - The QR code encodes a **short-lived session invite**: a session id, an ephemeral public key, and a transport hint. It **never encodes list contents** (QR capacity is too small, and the contents would go stale).
-- **"Updatable QR":** a user can also have a **permanent profile QR / link** (`binderswap.app/u/<handle>` — **[VERIFY]** domain). Because it points to live data, updating the lists never requires a new code. Scanning it without the app opens a web preview and an App Store link, which is also a growth loop.
+- **"Updatable QR" — a published snapshot, not live data (revised for local-first, §6.5).** A user can have a **permanent profile QR / link** (`binderswap.app/u/<handle>` — **[VERIFY]** domain). The original design had it point at live server-side lists, which local-first removes: we no longer hold anyone's lists to serve. Instead the user **publishes** explicitly, and we store only that snapshot:
+  - **Tap to publish.** What goes up is the **for-trade list and the want list only** — never the collection, never values, never trade history. This matches the minimum already promised for a swap (§11).
+  - **The code stays permanent; the snapshot is replaced.** Re-publishing overwrites the same handle, so the QR printed on a card or stuck to a binder never goes stale as an identifier.
+  - **Published data carries its date and expires.** A profile shows *"as of 12 March"*, and an un-refreshed snapshot expires (**[DECISION]** 30 days). Silent staleness is the same trap as a stale price (§6.2): someone acts on it and blames us. Better to say "this list is old" or show nothing.
+  - **Revocable and regenerable**, and never issued to a child (§11).
+  - **Scanning without the app** opens the web preview and an App Store link, which is the cold-start growth loop (§12) and the reason this is worth keeping at all.
+  - Same mechanism as the wish-list deep link deferred in §6.7.1 — building publish once serves both.
 - **Transport, in order of preference:**
   1. Local peer-to-peer (Multipeer on iOS↔iOS). Works **offline**, which matters because card shows often have poor signal.
   2. Backend relay over the internet (works iOS↔Android and at a distance).
