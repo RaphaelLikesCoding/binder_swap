@@ -1,0 +1,64 @@
+{
+ "about": "Wish list export (spec 6.7.1, Premium). CSV is for spreadsheets and shopping; text is for pasting into Messages or Discord, where an attachment cannot be read in the thread. Both implementations must produce these bytes exactly.",
+ "meta": {
+  "en/sv03/3": {
+   "name": "Charmander",
+   "set_name": "Obsidian Flames",
+   "number_label": "003/197"
+  },
+  "en/sv03/7": {
+   "name": "Fletchling, \"rare\"",
+   "set_name": "Obsidian Flames",
+   "number_label": "007/197"
+  }
+ },
+ "cases": [
+  {
+   "name": "csv quotes a name containing a comma and a quote",
+   "format": "csv",
+   "wishes": [
+    {
+     "card_id": "en/sv03/3",
+     "priority": "need",
+     "source": "set_gap"
+    },
+    {
+     "card_id": "en/sv03/7",
+     "priority": "need",
+     "source": "set_gap",
+     "owned_elsewhere": [
+      "t"
+     ]
+    }
+   ],
+   "expected": "card_id,name,set,number,priority,source,quantity,owned_elsewhere\nen/sv03/3,Charmander,Obsidian Flames,003/197,need,set_gap,1,\nen/sv03/7,\"Fletchling, \"\"rare\"\"\",Obsidian Flames,007/197,need,set_gap,1,t\n"
+  },
+  {
+   "name": "text names the set once and flags a copy held elsewhere",
+   "format": "text",
+   "set_name": "Obsidian Flames",
+   "wishes": [
+    {
+     "card_id": "en/sv03/3",
+     "priority": "need",
+     "source": "set_gap"
+    },
+    {
+     "card_id": "en/sv03/7",
+     "priority": "need",
+     "source": "set_gap",
+     "owned_elsewhere": [
+      "t"
+     ]
+    }
+   ],
+   "expected": "Obsidian Flames \u2014 need 2:\n  Charmander 003/197\n  Fletchling, \"rare\" 007/197  [have a copy elsewhere]\n"
+  },
+  {
+   "name": "an empty list says so rather than producing a bare header",
+   "format": "text",
+   "wishes": [],
+   "expected": "Nothing missing."
+  }
+ ]
+}

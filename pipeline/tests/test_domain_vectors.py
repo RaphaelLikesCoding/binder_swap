@@ -9,8 +9,9 @@ from pathlib import Path
 import pytest
 
 from binderswap.domain.core import (Binder, CatalogSet, Collection, Item, Match, Offer, TradeRecord, Wish,
-                                    apply_trade, can_add_binder, can_add_pages, match, suggest_fair_trade,
-                                    tradeables, visible_trade_history, wishlist)
+                                    apply_trade, can_add_binder, can_add_card, can_add_pages, match,
+                                    suggest_fair_trade, tradeables, visible_trade_history, wishlist,
+                                    wishlist_csv, wishlist_text, PLANS)
 
 VECTORS = Path(__file__).resolve().parents[2] / "spec" / "vectors"
 
@@ -91,10 +92,29 @@ def test_apply_trade(case):
 
 def test_plans():
     v = load("plans.json")
+    for c in v["card_limits"]:
+        assert can_add_card(c["plan"], c["cards_held"]) == c["can_add"], c
     for c in v["binder_limits"]:
         assert can_add_binder(c["plan"], c["binders"]) == c["can_add"], c
     for c in v["downgrade"]:
-        assert can_add_pages(c["plan"], c["binders"]) == c["can_add_pages"], c
+        assert can_add_pages(c["plan"], c["cards_held"]) == c["can_add_pages"], c
+    for c in v["gates"]:
+        for gate, want in c.items():
+            if gate == "plan":
+                continue
+            assert PLANS[c["plan"]][gate] == want, (c["plan"], gate)
     for c in v["trade_history"]:
         recs = [TradeRecord(d, d, "peer", [], []) for d in c["records"]]
         assert [r.completed_at for r in visible_trade_history(c["plan"], recs)] == c["visible"], c
+
+
+def test_wishlist_export_vectors():
+    """The Swift app must produce these bytes exactly (spec 6.7.1)."""
+    v = load("wishlist_export.json")
+    for c in v["cases"]:
+        wishes = [Wish(**{**w, "owned_elsewhere": tuple(w.get("owned_elsewhere", ()))}) for w in c["wishes"]]
+        if c["format"] == "csv":
+            got = wishlist_csv(wishes, v["meta"])
+        else:
+            got = wishlist_text(wishes, v["meta"], c.get("set_name"))
+        assert got == c["expected"], f'{c["name"]}\n--- got ---\n{got}\n--- want ---\n{c["expected"]}'

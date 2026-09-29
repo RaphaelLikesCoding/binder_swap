@@ -446,18 +446,23 @@ The missing list is not only for in-app matching. A collector's list is
 something they send to a friend, post in a Discord, or take shopping. Export is
 Premium, as with everything else about the list (§6.2).
 
+**v1 ships two formats, both built** (`wishlist_csv`, `wishlist_text` in the
+reference rules, with vectors in `spec/vectors/wishlist_export.json` that the
+Swift app must match byte for byte):
+
 | Format | For |
 |---|---|
-| **Plain text** | Pasting into Messages, Discord or a forum. `Evolving Skies — need 12: 45, 102, 188/203 …` |
-| **CSV** | Spreadsheets, and the collectors who keep one anyway |
-| **TCGplayer Mass Entry** | Paste straight into a cart and price or buy the whole list at once. **[VERIFY]** the current field format |
-| **Cardmarket want list** | The European equivalent, and the only one that works for Japanese cards (§8.3) |
-| **Shareable image** | A card-grid picture for social, which doubles as marketing |
-| **Deep link / QR** | A friend with the app opens it and is matched against their own collection immediately — this one feeds the network rather than leaving it |
+| **CSV** | Spreadsheets, shopping, and the collectors who keep one anyway |
+| **Plain text** | Pasting into Messages, Discord or a forum — an attachment cannot be read inside a thread, and "send it to a friend" is the case that started this |
 
-The deep link is the valuable one. Text and CSV leave the product; a shared
-wish list that a friend can open *inside* the app turns one member's export
-into another person's install and an immediate match.
+Deliberately deferred, in rough order of when they earn their keep:
+
+| Later | Why not now |
+|---|---|
+| **Deep link / QR** | Strategically the best of them — a friend opens the list *inside* the app and is matched immediately, so it feeds the network instead of draining it. But at launch the network is empty, so it is a link to nothing. Build it once there are people to match against. |
+| **TCGplayer Mass Entry** | Paste straight into a cart to price or buy the whole list. **[VERIFY]** the current field format before committing to it |
+| **Cardmarket want list** | The European equivalent, and the only one that covers Japanese cards (§8.3) |
+| **Shareable image** | A card-grid picture for social, which doubles as marketing |
 
 
 ## 7. Feature: Meet & Match (the swap)

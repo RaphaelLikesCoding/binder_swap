@@ -278,32 +278,120 @@ def apply_trade(collection: Collection, gave: list[Item], got: list[Item]) -> Co
     return col
 
 
+# -- exporting a wish list ---------------------------------------------------------
+
+def _row(w: "Wish", meta: dict) -> dict:
+    m = meta.get(w.card_id, {})
+    return {
+        "card_id": w.card_id,
+        "name": m.get("name", ""),
+        "set": m.get("set_name", ""),
+        "number": m.get("number_label", ""),
+        "priority": w.priority,
+        "source": w.source,
+        "quantity": str(w.quantity),
+        "owned_elsewhere": ";".join(w.owned_elsewhere),
+    }
+
+
+WISHLIST_COLUMNS = ("card_id", "name", "set", "number", "priority", "source",
+                    "quantity", "owned_elsewhere")
+
+
+def wishlist_csv(wishes: list["Wish"], meta: dict) -> str:
+    """The wish list as CSV (spec 6.7.1, Premium).
+
+    ``meta`` maps card_id to {name, set_name, number_label}; the rules layer
+    holds no card names, so the caller supplies them. Columns are fixed and
+    ordered, because the Swift app must produce a byte-identical file.
+    """
+    out = [",".join(WISHLIST_COLUMNS)]
+    for w in wishes:
+        r = _row(w, meta)
+        out.append(",".join(_csv_cell(r[c]) for c in WISHLIST_COLUMNS))
+    return "\n".join(out) + "\n"
+
+
+def _csv_cell(v: str) -> str:
+    return '"' + v.replace('"', '""') + '"' if any(c in v for c in ',"\n') else v
+
+
+def wishlist_text(wishes: list["Wish"], meta: dict, set_name: str | None = None) -> str:
+    """The wish list as a message someone can paste to a friend (spec 6.7.1).
+
+    CSV is for spreadsheets and shopping; this is for Messages and Discord,
+    where an attachment cannot be read in the thread. Same data, different
+    writer.
+    """
+    if not wishes:
+        return "Nothing missing."
+    head = f"{set_name} — need {len(wishes)}:" if set_name else f"Need {len(wishes)}:"
+    lines = [head]
+    for w in wishes:
+        r = _row(w, meta)
+        bits = [b for b in (r["name"], r["number"]) if b] or [w.card_id]
+        line = "  " + " ".join(bits)
+        if not set_name and r["set"]:
+            line += f" ({r['set']})"
+        if w.quantity > 1:
+            line += f" x{w.quantity}"
+        if w.owned_elsewhere:
+            line += "  [have a copy elsewhere]"
+        lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
 # -- plans ------------------------------------------------------------------------
 
 PLANS = {
-    # Proposed numbers (spec §6.1 [DECISION]); the structure is decided.
-    "free": {"binders": 2, "scans_per_month": 20, "trade_history": 1, "cloud_backup": False, "children": 1},
-    "premium_10": {"binders": 10, "scans_per_month": None, "trade_history": None, "cloud_backup": True, "children": 4},
-    "premium_30": {"binders": 30, "scans_per_month": None, "trade_history": None, "cloud_backup": True, "children": 4},
-    "premium_unlimited": {"binders": None, "scans_per_month": None, "trade_history": None, "cloud_backup": True,
-                          "children": 4},
-    "lifetime": {"binders": None, "scans_per_month": None, "trade_history": None, "cloud_backup": True, "children": 4},
+    # Decided, spec 6.2. One subscription, no lifetime tier. The free limit is
+    # CARDS, not binders: binder count reflects how someone organises, not how
+    # much they own, so limiting it prices the wrong thing.
+    "free": {
+        "cards": 200,          # physical cards, duplicates counted (spec 6.2)
+        "binders": None,       # unlimited on every plan
+        "values": False,       # never shown; a stale price is worse than none
+        "set_gap_detail": False,   # the count is shown, the list is not
+        "trading": False,
+        "backup": False,
+        "export": False,
+        "trade_history": 0,
+        "catalog_updates": False,
+    },
+    "premium": {
+        "cards": None, "binders": None, "values": True, "set_gap_detail": True,
+        "trading": True, "backup": True, "export": True,
+        "trade_history": None, "catalog_updates": True,
+    },
 }
 
 
+def card_count(collection: "Collection") -> int:
+    """Physical cards held, duplicates included (spec 6.2)."""
+    return sum(1 for _, _ in collection.all_items())
+
+
+def can_add_card(plan: str, cards_held: int) -> bool:
+    limit = PLANS[plan]["cards"]
+    return limit is None or cards_held < limit
+
+
 def can_add_binder(plan: str, binder_count: int) -> bool:
+    """Binders are unlimited on every plan; kept so callers need not special-case."""
     limit = PLANS[plan]["binders"]
     return limit is None or binder_count < limit
 
 
-def can_add_pages(plan: str, binder_count: int) -> bool:
-    """Over the limit after a downgrade: read-only (and still swappable), never deleted."""
-    limit = PLANS[plan]["binders"]
-    return limit is None or binder_count <= limit
+def can_add_pages(plan: str, cards_held: int) -> bool:
+    """Over the card limit after a downgrade: the collection stays, and stays
+    editable -- what lapses is values, matching, backup and catalogue updates
+    (spec 6.1). Only *growing* past the limit is blocked."""
+    return can_add_card(plan, cards_held)
 
 
 def visible_trade_history(plan: str, history: list[TradeRecord]) -> list[TradeRecord]:
-    """Newest first; free keeps the last trade. Records are kept, only hidden."""
+    """Newest first. Trading is Premium (spec 6.1), so Free shows none -- but
+    records are kept, never deleted, and reappear on resubscribing."""
     ordered = sorted(history, key=lambda t: t.completed_at, reverse=True)
     keep = PLANS[plan]["trade_history"]
     return ordered if keep is None else ordered[:keep]
