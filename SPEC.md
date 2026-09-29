@@ -579,7 +579,7 @@ for_them = my.tradeables    ∩ their.wants
 ┌───────────────▼────────────────────────────────┐
 │ Backend (thin) — holds NO collections          │
 │ • Catalog + price cache (daily ETL from APIs)  │
-│ • Embedding-index packs per set (CDN)          │
+│ • Index packs (.bspk) per language (CDN)       │
 │ • Profile links (opt-in, adults only)          │
 │ • Swap relay (when not peer-to-peer)           │
 └────────────────────────────────────────────────┘
@@ -588,6 +588,7 @@ for_them = my.tradeables    ∩ their.wants
 ```
 
 ### Stack decisions
+- **Index packs are a `.bspk` file, not a numpy array (decided).** The build index is a `.npz`, which Swift cannot read, so a format only one side can parse would have been a contract waiting to break. `.bspk` is a little-endian file designed to be memory-mapped and searched in place: an 8-byte magic, a length-prefixed JSON header (embedder, count, dim, dtype, id width), fixed-width NUL-padded ids so row *i* is at a known offset, then float16 vectors row-major. EN is 40.7 MB and JA 15.5 MB — float16 because a phone would rather hold 40 MB than 80, and the index already stored it that way. Written by `binderswap.images.pack`, read by `IndexPack` in `BinderSwapCore`, with a committed fixture in `spec/vectors/packs/` that both sides check against the *same* expected values.
 - **Rules live in a platform-free package (decided).** `BinderSwapCore` has no UI framework and no iOS SDK, so it compiles for macOS, iOS and Linux, runs in CI on any of them, and can be developed without Xcode. It also keeps the door open for Android later via a port rather than a rewrite of the logic.
 - **iOS client: native Swift/SwiftUI (decided).** The hard parts (camera, Vision, Core ML, MultipeerConnectivity, Nearby Interaction) are all native Apple frameworks. A cross-platform framework would put every one of them behind a bridge and still need an Android rewrite of those modules. The cost: Android later means a second client, though the backend, protocol, catalog and models are shared. The alternative is Kotlin Multiplatform for shared business logic (matching, models) with native UIs.
 - **Backend (decided): read-only reference plus a relay.** Catalogue, prices and index packs are static files behind a CDN, refreshed by a scheduled ETL job; the only stateful pieces are the swap relay and opt-in profile links. There is no user database, so there is no auth-and-storage platform to choose, no row-level security to get wrong, and the cost does not scale with users (§6.5). Backup is the user's own iCloud Drive, which sidesteps the Android problem that CloudKit *sync* would have created — backup is per-platform by nature, sync is not.

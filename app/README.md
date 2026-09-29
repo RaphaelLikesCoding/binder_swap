@@ -4,7 +4,7 @@ The iOS app, and the parts of it that do not need Xcode.
 
 | Path | What it is |
 |---|---|
-| [`BinderSwapCore/`](BinderSwapCore/) | The collection and trading rules in Swift, as a SwiftPM package |
+| [`BinderSwapCore/`](BinderSwapCore/) | The collection and trading rules, and the index-pack reader, in Swift as a SwiftPM package |
 
 ## BinderSwapCore
 
@@ -29,3 +29,15 @@ ticket. When the app exists, it takes this as a package dependency.
 Verified by sabotage, not just by passing: dropping the `keep` flag from
 tradeables and inverting the needs-before-wants ordering each fail the vector
 that covers them.
+
+### IndexPack
+
+`IndexPack` reads a `.bspk` card index — memory-mapped and searched in place,
+so finding a card among 19,724 does not allocate 40 MB of objects first. Packs
+are written by `binderswap.images.pack` on the Python side.
+
+The format exists because the build index is a numpy `.npz` and Swift has no
+numpy. A format only one language can read is a contract waiting to break, so
+both sides are checked against the *same* committed fixture in
+`spec/vectors/packs/` — Swift against values Python produced, not against its
+own idea of what it wrote.

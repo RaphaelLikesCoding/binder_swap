@@ -10,7 +10,8 @@ The product and technical spec is in [`SPEC.md`](SPEC.md).
 |---|---|
 | [`SPEC.md`](SPEC.md) | Product and technical spec (decisions, open questions, roadmap) |
 | [`pipeline/`](pipeline/) | Python data pipeline: card catalog, card images, visual index, binder-page recognition prototype, price cache, evaluation, reference rules |
-| [`spec/vectors/`](spec/vectors/) | JSON test cases for the collection and trading rules. The Python reference and the iOS app both must pass them |
+| [`app/`](app/) | The Swift side: `BinderSwapCore`, the trading rules and index-pack reader, buildable without Xcode |
+| [`spec/vectors/`](spec/vectors/) | JSON test cases for the collection and trading rules, plus an index-pack fixture. The Python reference and the Swift package both must pass them |
 | [`BLOCKERS.md`](BLOCKERS.md) | Blocker blotter: what is blocking next steps, owner, status |
 | [`pipeline/reports/`](pipeline/reports/) | Latest catalog build report and English cross-check report |
 | `.github/workflows/` | CI tests; weekly or manual catalog rebuild (plus optional image download and index build) |
@@ -37,6 +38,9 @@ python -m binderswap.recognition.cli IMG_0412.jpg --overlay out.jpg [--set en/sv
 
 # Measure accuracy on labelled photos
 python -m binderswap.recognition.eval --pages photos/labels.json --out report.md
+
+# Index pack the iOS app can read (.bspk, memory-mapped)
+python -m binderswap.images.pack --index build/index/en.npz --out build/packs/en.bspk
 
 # Daily price cache (TCGplayer USD + Cardmarket EUR, via TCGdex)
 python -m binderswap.prices.fetch --langs en,ja
