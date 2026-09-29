@@ -1,6 +1,7 @@
 """End-to-end tests on a synthetic world: catalog -> image server -> fetch -> index -> recognize."""
 
 import json
+import shutil
 import sqlite3
 
 import cv2
@@ -35,6 +36,43 @@ def test_fetch_records_ok_and_missing_and_is_resumable(world):
     # Rerun: nothing left to do (the catalog still points at the dead test server).
     assert fetch.run(out / "catalog.sqlite", out / "images", langs=["en"], rate=0, progress=False) == \
         {"ok": 0, "missing": 0, "error": 0}
+
+
+def test_plan_refetches_when_the_manifest_says_ok_but_the_files_are_not_there(world, tmp_path):
+    """A manifest is not evidence that the images exist.
+
+    Restoring a manifest from a CI artifact, clearing build/, or rerunning with
+    a different --ext all leave rows saying "ok" with no file behind them. If
+    plan() trusts the row, the fetcher skips every card and reports success
+    having downloaded nothing.
+    """
+    out, _ = world
+    images = tmp_path / "images"
+    shutil.copytree(out / "images", images)
+    m = sqlite3.connect(images / "manifest.sqlite")
+
+    def planned(ext=None):
+        return fetch.plan(out / "catalog.sqlite", images, "high", ["en"], None, m, False, ext)
+
+    assert planned() == []                                  # files present: nothing to do
+
+    # Same extension, files gone. The one "missing" card stays skipped: the
+    # server has no image for it, so there is nothing on disk to look for.
+    pngs = sorted(images.rglob("*.png"))
+    assert len(pngs) == 79
+    for f in pngs:
+        f.unlink()
+    assert len(planned()) == 79
+
+    # A truncated file is not a usable one either.
+    shutil.rmtree(images)
+    shutil.copytree(out / "images", images)
+    victim = sorted(images.rglob("*.png"))[0]
+    victim.write_bytes(victim.read_bytes()[:10])
+    assert len(planned()) == 1
+
+    # Files present, but under a different extension than the one asked for.
+    assert len(planned(ext="webp")) == 79
 
 
 def test_index_roundtrip_and_self_match(world):

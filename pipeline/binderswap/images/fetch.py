@@ -6,7 +6,10 @@
 Images land at ``<out>/<lang>/<set>/<local_id>.<ext>``. The manifest
 (``<out>/manifest.sqlite``) records status, size and sha256 per image, so a
 rerun only fetches what's missing or failed, and new sets are picked up by
-simply rerunning after a catalog rebuild.
+simply rerunning after a catalog rebuild. A card counts as already done only
+if the manifest says ``ok`` *and* the file is on disk at the recorded size, so
+a manifest without its images (a fresh clone, a cleared ``build/``, a restored
+CI artifact) re-fetches instead of silently skipping everything.
 
 Card art is © The Pokémon Company / Nintendo / Creatures / GAME FREAK. Images
 are fetched for display and for building the recognition index only.
@@ -76,11 +79,29 @@ class RateLimiter:
             time.sleep(delay)
 
 
+def on_disk(dest: Path, expect_bytes: int | None) -> bool:
+    """Is a previously recorded ``ok`` image actually present and whole?
+
+    The manifest cannot answer this on its own. A fresh clone, a cleared
+    ``build/`` directory, a manifest restored from a CI artifact, or a rerun
+    with a different ``--ext`` all leave rows saying ``ok`` with no file behind
+    them -- and trusting the row alone makes the fetcher skip every such card
+    and report success having downloaded nothing.
+    """
+    try:
+        size = dest.stat().st_size
+    except OSError:
+        return False
+    if size == 0:
+        return False
+    return expect_bytes is None or size == expect_bytes
+
+
 def plan(catalog: Path, out: Path, quality: str, langs: list[str], sets: list[str] | None,
          manifest: sqlite3.Connection, retry_errors: bool, ext: str | None = None) -> list[Job]:
     ext = ext or FORMATS[quality]
-    done = {row[0]: row[1] for row in manifest.execute(
-        "SELECT card_id, status FROM images WHERE quality=?", (quality,))}
+    done = {row[0]: (row[1], row[2]) for row in manifest.execute(
+        "SELECT card_id, status, bytes FROM images WHERE quality=?", (quality,))}
     con = sqlite3.connect(catalog)
     q = "SELECT id, lang, set_id, local_id, image_base FROM cards WHERE lang IN (%s)" % ",".join("?" * len(langs))
     params: list[str] = list(langs)
@@ -89,10 +110,16 @@ def plan(catalog: Path, out: Path, quality: str, langs: list[str], sets: list[st
         params += sets
     jobs = []
     for cid, lang, set_id, local_id, base in con.execute(q + " ORDER BY id", params):
-        status = done.get(cid)
-        if status in ("ok", "missing") or (status == "error" and not retry_errors):
-            continue
         dest = out / lang / set_id.split("/", 1)[1] / f"{local_id}.{ext}"
+        status, nbytes = done.get(cid, (None, None))
+        # "missing" means the server has no such image: there is nothing to
+        # check for on disk, and rerunning would only repeat the 404.
+        if status == "missing":
+            continue
+        if status == "ok" and on_disk(dest, nbytes):
+            continue
+        if status == "error" and not retry_errors:
+            continue
         jobs.append(Job(cid, f"{base}/{quality}.{ext}", dest))
     con.close()
     return jobs
