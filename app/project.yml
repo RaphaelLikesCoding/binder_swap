@@ -1,0 +1,40 @@
+# The Xcode project is GENERATED from this file (xcodegen), never committed.
+#
+# A project.pbxproj is unreviewable -- it merges badly, and a diff in it cannot
+# be read. This spec can be. Run `xcodegen` in app/ to produce BinderSwap.xcodeproj.
+
+name: BinderSwap
+options:
+  bundleIdPrefix: com.binderswap          # [DECISION] pending branding (SPEC §14)
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  BinderSwapCore:
+    path: BinderSwapCore
+
+targets:
+  BinderSwap:
+    type: application
+    platform: iOS
+    sources: [BinderSwap/Sources]
+    dependencies:
+      - package: BinderSwapCore
+    info:
+      path: BinderSwap/Info.plist
+      properties:
+        CFBundleDisplayName: Binder Swap
+        UILaunchScreen: {}
+        # Intake photographs binder pages; the string is what the user is shown.
+        NSCameraUsageDescription: Binder Swap uses the camera to photograph a binder page and recognise the cards in it.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.binderswap.app
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        # No account and no signing team yet (BLOCKERS #3b).
+        CODE_SIGNING_ALLOWED: "NO"

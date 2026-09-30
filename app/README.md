@@ -41,3 +41,21 @@ numpy. A format only one language can read is a contract waiting to break, so
 both sides are checked against the *same* committed fixture in
 `spec/vectors/packs/` — Swift against values Python produced, not against its
 own idea of what it wrote.
+
+## BinderSwap (the iOS app)
+
+```bash
+cd app
+xcodegen generate          # produces BinderSwap.xcodeproj from project.yml
+xcodebuild -project BinderSwap.xcodeproj -scheme BinderSwap \
+  -destination 'generic/platform=iOS Simulator' build
+```
+
+**The Xcode project is generated, not committed.** `project.pbxproj` merges badly
+and a diff in it cannot be read; `project.yml` can. `Info.plist` is generated
+from it too, for the same reason — one source of truth or it drifts.
+
+The first screen exists to prove the seam rather than to be the product: it runs
+`BinderSwapCore`'s rules — card count, tradeables, set gaps, plan gates — inside
+a real iOS app. The package passing its tests and the app being able to use it
+are separate claims, and this makes the second one separately demonstrable.
