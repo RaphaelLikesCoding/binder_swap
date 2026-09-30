@@ -76,3 +76,18 @@ def test_header_is_little_endian_length_prefixed():
     assert data[:8] == MAGIC
     (n,) = struct.unpack_from("<I", data, 8)
     assert json.loads(data[12:12 + n])["dtype"] == "float16"
+
+
+def test_card_seed_is_stable_across_processes():
+    """hash() on a str is salted per interpreter, so seeding degradation with it
+    makes a measurement irreproducible -- a baseline moved 0.04 between two runs
+    of the same cards, which was larger than the effect being measured."""
+    import subprocess
+    import sys as _sys
+    from binderswap.recognition.ocrcheck import card_seed
+    here = card_seed("en/sv03/001")
+    out = subprocess.run(
+        [_sys.executable, "-c",
+         "from binderswap.recognition.ocrcheck import card_seed; print(card_seed('en/sv03/001'))"],
+        capture_output=True, text=True, check=True)
+    assert int(out.stdout.strip()) == here, "per-card seed differs between processes"

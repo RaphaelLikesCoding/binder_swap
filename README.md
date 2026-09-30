@@ -60,7 +60,7 @@ python -m binderswap.recognition.ocrcheck 200 0.35
 | | |
 |---|---|
 | Embedder (`classic-v1`) top-4, full 19,724-card pool | 1.000 clean, 0.98 moderate, 0.86 harsh |
-| Number reading, exact number **and** total | 0.767 clean, 0.530 mild, 0.330 heavy |
+| Number reading, exact number **and** total | 0.767 clean, 0.487 mild, 0.280 heavy (n=400) |
 | Recognising a 9-card page | 1.22s |
 | Real-art pages: layout / top-1 / top-4 | 1.000 / 0.977 / 0.994 (n=309 cards) |
 | Auto-confirm at threshold 0.7 | precision 1.000, coverage 0.951 (our degradation model, a ceiling) |

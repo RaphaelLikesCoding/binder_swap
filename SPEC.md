@@ -411,8 +411,9 @@ per-card identity is the number printed at the edge. The UI should also be able
 to show such a set as the single picture it is.
 
 **Number reading is the weak link and should be visible as one.** Tesseract
-reads a card's printed number correctly 0.767 of the time on a clean scan and
-0.530 under mild degradation. Since the number is what separates reprints,
+reads a card's printed number correctly 0.767 of the time on a clean scan,
+0.487 under mild degradation and 0.280 under heavy (n=400). Since the number
+is what separates reprints,
 low-confidence reads should prompt "tap the number to confirm" rather than
 silently guessing — and a purpose-built reader is the highest-value model
 investment.

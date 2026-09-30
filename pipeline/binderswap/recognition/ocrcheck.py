@@ -13,7 +13,11 @@ This number is load-bearing. The band is what separates reprints (it settles
 cards, whose art runs continuously across pockets. Needs build/images and
 build/catalog.
 """
-import sqlite3, sys, time, collections
+import collections
+import sqlite3
+import sys
+import time
+import zlib
 import concurrent.futures as cf
 
 import cv2
@@ -41,11 +45,22 @@ print(f"{len(pick)} cards, severity {SEV}")
 VARIANTS = [(51, 15), (31, 8)]
 PSMS = (11, 6, 7)
 
+def card_seed(card_id: str) -> int:
+    """A per-card seed that is the same in every process.
+
+    ``hash()`` on a str is salted per interpreter, so seeding degradation with
+    it gives each card different damage on every run. The baseline then wanders
+    by more than the effects being measured -- it moved 0.04 between two runs
+    of the same cards here, which is larger than the number-band signal.
+    """
+    return zlib.crc32(card_id.encode()) & 0xffffffff
+
+
 def work(row):
     cid, local, total = row
     img = cv2.imread(paths[cid], cv2.IMREAD_COLOR)
     if img is None: return None
-    r = np.random.default_rng(abs(hash(cid)) % (2**32))
+    r = np.random.default_rng(card_seed(cid))
     card = degrade(img, r, SEV)
     # mirror read_number: only shrink to canonical if the crop is already small
     band = crop_frac(canonical(card) if card.shape[1] < 400 else card, NUMBER_BAND)
