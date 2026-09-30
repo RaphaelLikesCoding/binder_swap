@@ -35,15 +35,15 @@ Each blocks real work. Roughly in the order they start to hurt.
 
 ---
 
-## M0 — Prove the toolchain  *(nearly done)*
+## M0 — Prove the toolchain  ✅ *complete*
 
 | # | Task | Owner | Done when |
 |---|---|---|---|
 | 0.1 | ~~Rules layer in Swift, passing the shared vectors~~ | Claude | ✅ `BinderSwapCore`, 14 tests, same `spec/vectors/*.json` as Python |
 | 0.2 | ~~Index pack format both languages can read~~ | Claude | ✅ `.bspk`; real index round-trips at `max|delta| = 0` |
 | 0.3 | ~~App builds for iOS~~ | Claude | ✅ `BUILD SUCCEEDED`, device and simulator SDK |
-| 0.4 | **Launch the app in a simulator** | Claude | A process starts and the first screen renders. *Building is not launching* — a prior Mac app compiled, signed and hashed clean, then trapped on startup. |
-| 0.5 | App build in CI | Claude | `core-tests` builds the app target, not only the package |
+| 0.4 | ~~Launch the app in a simulator~~ | Claude | ✅ 2026-09-30. Runs on iPhone 18 Pro / iOS 27.0; the first screen renders and its numbers are the rules firing live — tradeable is 1 because a Keep card and a set-needed card are both excluded, and `owned_elsewhere` resolves across binders. |
+| 0.5 | ~~App build in CI~~ | Claude | ✅ `core-tests` now has an `app` job: generates the project with xcodegen and builds for iOS. |
 
 ## M1 — Recognition on the device  *(the hard part, and the real unknown)*
 

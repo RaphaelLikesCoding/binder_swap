@@ -24,3 +24,21 @@ jobs:
         run: swift build
       - name: Test against the shared vectors
         run: swift test
+
+  app:
+    # The package passing its tests and the app being able to use it are
+    # separate claims. This checks the second one.
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate the Xcode project
+        # project.pbxproj is generated, never committed -- a diff in one cannot
+        # be read, so app/project.yml is the source of truth.
+        run: brew install xcodegen && xcodegen generate
+      - name: Build for iOS
+        run: |
+          xcodebuild -project BinderSwap.xcodeproj -scheme BinderSwap \
+            -destination 'generic/platform=iOS Simulator' build
