@@ -24,7 +24,8 @@ Each blocks real work. Roughly in the order they start to hurt.
 
 | # | Decision | Blocks | Notes |
 |---|---|---|---|
-| D1 | **Branding and domain.** Is "Binder Swap" clear for trademark and App Store use, and do we own a domain? | Bundle id (placeholder `com.binderswap.app` today), App Store listing, the profile URL `binderswap.app/u/<handle>` | Cheap to settle, and everything downstream hardcodes it. Renaming a shipped bundle id is not possible. |
+| D1 | **Rename.** "Binder Swap" is taken by a live app doing nearly this product, along with the domain and both store listings ([COMPETITION.md](COMPETITION.md)) | Bundle id (placeholder today), App Store listing, profile URL | Not a preference any more. The incumbent has 0 ratings after 6 weeks, so the brand is unestablished — but the name is unusable. |
+| D1b | ~~Branding and domain~~ — superseded by D1. **Original text:** Is "Binder Swap" clear for trademark and App Store use, and do we own a domain? | Bundle id (placeholder `com.binderswap.app` today), App Store listing, the profile URL `binderswap.app/u/<handle>` | Cheap to settle, and everything downstream hardcodes it. Renaming a shipped bundle id is not possible. |
 | D2 | **Apple Developer account** — enroll at $99/yr? | Running on a real iPhone, TestFlight, any submission. Enrolment can take days | Simulator works without it. Nothing else does. |
 | D3 | **Minimum iOS version.** SPEC §2 says 17+ `[VERIFY]`; the project currently targets **16.0** | Which APIs we may use | 16 vs 17 vs 18 is a reach-versus-capability call. I can measure what each buys if useful. |
 | D4 | **Japanese catalogue gaps** (BLOCKERS #5): 44% of JA cards have no image, whole vintage sets have none | Whether JA ships in v1 at parity, or ships degraded and labelled | Options: contribute upstream to TCGdex, hand-fill, pay for Scrydex, or ship JA knowingly partial. |
